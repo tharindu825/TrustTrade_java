@@ -368,7 +368,10 @@
     <div class="header">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h1>🚀 TrustTrade Dashboard</h1>
-            <button class="btn btn-danger" onclick="emergencyCloseAll()">🚨 Emergency Close All</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" onclick="loadData()" style="background: #48bb78; color: white;">🔄 Refresh</button>
+                <button class="btn btn-danger" onclick="emergencyCloseAll()">🚨 Emergency Close All</button>
+            </div>
         </div>
     </div>
 
@@ -379,9 +382,6 @@
                 <li><a href="/journal"><span class="icon">📖</span> Trading Journal</a></li>
                 <li><a href="/settings"><span class="icon">⚙️</span> Settings</a></li>
                 <li><a href="/logs" id="logs-link"><span class="icon">📋</span> Logs</a></li>
-                <div class="nav-divider"></div>
-                <li><a href="#" onclick="refreshData(); return false;"><span class="icon">🔄</span> Refresh Data</a>
-                </li>
             </ul>
         </aside>
 
@@ -725,7 +725,7 @@
 
         initProfitChart();
         loadData();
-        setInterval(loadData, 10000);
+        setInterval(loadData, 15000); // Auto-refresh every 15 seconds
     </script>
 </body>
 
