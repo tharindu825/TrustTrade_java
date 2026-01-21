@@ -23,6 +23,7 @@ class TradingStrategy {
         // State
         this.activeSignals = new Map();
         this.positionTracker = null;
+        this.alerts = null;
     }
 
     /**
@@ -31,6 +32,14 @@ class TradingStrategy {
     setPositionTracker(tracker) {
         this.positionTracker = tracker;
         logger.info('Position tracker linked to trading strategy');
+    }
+
+    /**
+     * Set updates alerts instance
+     */
+    setAlerts(alerts) {
+        this.alerts = alerts;
+        logger.info('Telegram alerts linked to trading strategy');
     }
 
     /**
@@ -262,6 +271,11 @@ class TradingStrategy {
                     logger.info(`✅ Limit order filled for ${symbol}! Placing TP/SL orders...`);
                     clearInterval(intervalId);
 
+                    // Send Alert
+                    if (this.alerts) {
+                        await this.alerts.sendTradeAlert(signalData.signal, 'ENTRY FILLED');
+                    }
+
                     // Track position
                     if (this.positionTracker) {
                         this.positionTracker.trackPosition(symbol, signalData);
@@ -269,6 +283,9 @@ class TradingStrategy {
 
                     // Place protective orders
                     await this.placeProtectiveOrders(symbol, signalData);
+
+                    // Start monitoring this active trade for TP/SL hits
+                    this.monitorActiveTrade(symbol, signalData);
 
                     return;
                 }
@@ -343,6 +360,18 @@ class TradingStrategy {
             logger.info(`✅ All protective orders placed successfully for ${symbol}`);
             logger.info(`TP1: ${tp1Order.orderId}, TP2: ${tp2Order.orderId}, SL: ${slOrder.orderId}`);
 
+            // Send Alert
+            if (this.alerts) {
+                await this.alerts.sendAlert(
+                    `🛡️ *Protective Orders Placed*\n\n` +
+                    `Symbol: ${symbol}\n` +
+                    `TP1: ${tp1Price}\n` +
+                    `TP2: ${tp2Price}\n` +
+                    `SL: ${slPrice}`,
+                    'info'
+                );
+            }
+
             // Mark position as protected in tracker
             if (this.positionTracker) {
                 this.positionTracker.markProtected(symbol);
@@ -355,6 +384,120 @@ class TradingStrategy {
 
         } catch (error) {
             logger.error(`Error placing protective orders for ${symbol}: ${error.message}`, error);
+        }
+    }
+
+    /**
+     * Poll active trade to check for TP/SL fills
+     */
+    monitorActiveTrade(symbol, signalData) {
+        const checkInterval = 10000;
+        signalData.tp1Filled = false;
+
+        const intervalId = setInterval(async () => {
+            try {
+                // If position closed externally, stop monitoring
+                const hasPosition = await this.trader.hasSymbolPosition(symbol);
+                if (!hasPosition) {
+                    logger.info(`Position ${symbol} no longer exists. Stopping monitor.`);
+                    clearInterval(intervalId);
+                    this.activeSignals.delete(symbol);
+                    return;
+                }
+
+                // Check TP1 Status
+                if (!signalData.tp1Filled && signalData.tp1OrderId) {
+                    const tp1Status = await this.trader.tradingClient.futuresOrder({ symbol, orderId: signalData.tp1OrderId });
+                    if (tp1Status.status === 'FILLED') {
+                        logger.info(`✅ TP1 Hit for ${symbol}`);
+                        signalData.tp1Filled = true;
+
+                        if (this.alerts) {
+                            await this.alerts.sendAlert(`💰 *TP1 Hit for ${symbol}*\nPrice: ${tp1Status.avgPrice}`, 'SUCCESS');
+                        }
+
+                        // Move SL to Breakeven
+                        if (signalData.slOrderId) {
+                            await this.moveStopLossToBreakeven(symbol, signalData);
+                        }
+                    }
+                }
+
+                // Check TP2 Status
+                if (signalData.tp2OrderId && signalData.tp2OrderId !== 'SKIPPED') {
+                    const tp2Status = await this.trader.tradingClient.futuresOrder({ symbol, orderId: signalData.tp2OrderId });
+                    if (tp2Status.status === 'FILLED') {
+                        logger.info(`✅ TP2 Hit for ${symbol}`);
+
+                        if (this.alerts) {
+                            await this.alerts.sendAlert(`💰 *TP2 Hit for ${symbol}*\nPrice: ${tp2Status.avgPrice}\nTrade Complete!`, 'SUCCESS');
+                        }
+
+                        // Trade likely done, but wait for position check loop to cleanup
+                        clearInterval(intervalId);
+                        this.activeSignals.delete(symbol);
+                        return;
+                    }
+                }
+
+                // Check SL Status (if position still exists but we are here, SL might not be filled completely? Or SL filled means position gone)
+                // If hasPosition is true, SL is not fully filled. 
+                // But if SL is partially filled or if market moved close to SL?
+                // Actually if SL fills, hasPosition becomes false (detected at top of loop).
+                // So explicit SL check is less critical unless we want to know WHY it closed.
+
+            } catch (error) {
+                // Ignore error if order not found (might be cancelled/filled long ago)
+                if (error.code !== -2013) {
+                    logger.error(`Error monitoring active trade ${symbol}: ${error.message}`);
+                }
+            }
+        }, checkInterval);
+    }
+
+    /**
+     * Move Stop Loss to Entry Price (Breakeven)
+     */
+    async moveStopLossToBreakeven(symbol, signalData) {
+        try {
+            logger.info(`Moving SL to breakeven for ${symbol}...`);
+
+            // Cancel existing SL
+            await this.trader.cancelOrder(symbol, signalData.slOrderId);
+
+            // Place new SL at Entry Price
+            // We need current position size? Or original - TP1? 
+            // TP1 filled means size is half.
+            // But safest is to get current position size.
+            const position = await this.trader.getPosition(symbol);
+            if (!position) return;
+
+            const quantity = Math.abs(parseFloat(position.positionAmt));
+            const entryPrice = signalData.entryPrice;
+            // Add a small buffer for fees? Or raw entry? Usually raw entry.
+            // Ensure entry price is valid for STOP_MARKET stopPrice
+            const formattedStopPrice = this.trader.formatPrice(symbol, entryPrice);
+
+            const newSlOrder = await this.trader.tradingClient.futuresOrder({
+                symbol,
+                side: signalData.exitSide,
+                type: 'STOP_MARKET',
+                stopPrice: formattedStopPrice,
+                closePosition: true // Use closePosition=true if possible, simpler than managing Qty
+            });
+
+            signalData.slOrderId = newSlOrder.orderId;
+            logger.info(`✅ SL moved to breakeven for ${symbol} at ${formattedStopPrice}`);
+
+            if (this.alerts) {
+                await this.alerts.sendAlert(`🛡️ *SL Moved to Breakeven*\nSymbol: ${symbol}\nNew SL: ${formattedStopPrice}`, 'INFO');
+            }
+
+        } catch (error) {
+            logger.error(`Failed to move SL to breakeven for ${symbol}: ${error.message}`);
+            if (this.alerts) {
+                await this.alerts.sendAlert(`⚠️ Failed to move SL to breakeven for ${symbol}: ${error.message}`, 'ERROR');
+            }
         }
     }
 

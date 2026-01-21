@@ -77,6 +77,7 @@ class TrustTradeBot {
 
             // Link position tracker to trading strategy
             this.tradingStrategy.setPositionTracker(this.positionTracker);
+            this.tradingStrategy.setAlerts(this.alerts);
 
             // Initialize web dashboard
             logger.info('Starting web dashboard...');
