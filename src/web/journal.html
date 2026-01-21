@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Journal - TrustTrade</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-value.positive {
+            color: #10b981;
+        }
+
+        .stat-value.negative {
+            color: #ef4444;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .chart-container h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .trades-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .trades-container h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        /* Desktop Table */
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            display: table;
+        }
+
+        .trades-table thead {
+            background: #f7fafc;
+        }
+
+        .trades-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .trades-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .trades-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-long {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-short {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-profit {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-loss {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .remarks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .remark-tag {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+        }
+
+        /* Mobile Cards */
+        .trades-cards {
+            display: none;
+        }
+
+        .trade-card {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .trade-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .trade-card-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .trade-card-row:last-child {
+            border-bottom: none;
+        }
+
+        .trade-card-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .trade-card-value {
+            font-weight: 600;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .trades-table {
+                display: none;
+            }
+
+            .trades-cards {
+                display: block;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Trading Journal</h1>
+            <p>Track your trading performance and analyze your results</p>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="window.location.href='/'">← Back to Dashboard</button>
+                <button class="btn btn-primary" onclick="loadTrades()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Trades</h3>
+                <div class="stat-value" id="total-trades">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Win Rate</h3>
+                <div class="stat-value" id="win-rate">0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total PNL</h3>
+                <div class="stat-value" id="total-pnl">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <h3>Average PNL</h3>
+                <div class="stat-value" id="avg-pnl">$0.00</div>
+            </div>
+        </div>
+
+        <!-- PNL Chart -->
+        <div class="chart-container">
+            <h2>Cumulative PNL Over Time</h2>
+            <canvas id="pnlChart"></canvas>
+        </div>
+
+        <!-- Trades Table/Cards -->
+        <div class="trades-container">
+            <h2>Trade History</h2>
+
+            <!-- Desktop Table -->
+            <table class="trades-table" id="trades-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Symbol</th>
+                        <th>Direction</th>
+                        <th>Entry</th>
+                        <th>Exit</th>
+                        <th>PNL</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody id="trades-tbody">
+                    <tr>
+                        <td colspan="7" class="no-data">Loading trades...</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Mobile Cards -->
+            <div class="trades-cards" id="trades-cards">
+                <div class="no-data">Loading trades...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pnlChart = null;
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('pnlChart').getContext('2d');
+            pnlChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Cumulative PNL',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/trades/stats');
+                const stats = await res.json();
+
+                document.getElementById('total-trades').textContent = stats.totalTrades;
+                document.getElementById('win-rate').textContent = stats.winRate.toFixed(1) + '%';
+
+                const totalPnlEl = document.getElementById('total-pnl');
+                totalPnlEl.textContent = '$' + stats.totalPnl.toFixed(2);
+                totalPnlEl.className = 'stat-value ' + (stats.totalPnl >= 0 ? 'positive' : 'negative');
+
+                const avgPnlEl = document.getElementById('avg-pnl');
+                avgPnlEl.textContent = '$' + stats.avgPnl.toFixed(2);
+                avgPnlEl.className = 'stat-value ' + (stats.avgPnl >= 0 ? 'positive' : 'negative');
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load trades
+        async function loadTrades() {
+            try {
+                const res = await fetch('/api/trades?status=CLOSED&limit=100');
+                const data = await res.json();
+                const trades = data.trades;
+
+                // Update chart
+                updateChart(trades);
+
+                // Update table
+                updateTable(trades);
+
+                // Update cards (mobile)
+                updateCards(trades);
+
+                // Load stats
+                await loadStats();
+            } catch (error) {
+                console.error('Error loading trades:', error);
+                document.getElementById('trades-tbody').innerHTML = '<tr><td colspan="7" class="no-data">Error loading trades</td></tr>';
+                document.getElementById('trades-cards').innerHTML = '<div class="no-data">Error loading trades</div>';
+            }
+        }
+
+        function updateChart(trades) {
+            if (!pnlChart) return;
+
+            let cumulativePnl = 0;
+            const labels = [];
+            const data = [];
+
+            trades.reverse().forEach(trade => {
+                cumulativePnl += trade.pnl;
+                const date = new Date(trade.closeTime);
+                labels.push(date.toLocaleDateString());
+                data.push(cumulativePnl);
+            });
+
+            pnlChart.data.labels = labels;
+            pnlChart.data.datasets[0].data = data;
+            pnlChart.update();
+        }
+
+        function updateTable(trades) {
+            const tbody = document.getElementById('trades-tbody');
+
+            if (trades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No trades yet</td></tr>';
+                return;
+            }
+
+            let html = '';
+            trades.forEach(trade => {
+                const entryDate = new Date(trade.entryTime).toLocaleString();
+                const closeDate = trade.closeTime ? new Date(trade.closeTime).toLocaleString() : 'Open';
+                const pnlClass = trade.pnl >= 0 ? 'badge-profit' : 'badge-loss';
+                const dirClass = trade.direction === 'LONG' ? 'badge-long' : 'badge-short';
+
+                const remarksHtml = trade.remarks.map(r =>
+                    `<span class="remark-tag">${r.text}</span>`
+                ).join('');
+
+                html += `
+                    <tr>
+                        <td>${entryDate}</td>
+                        <td><strong>${trade.symbol}</strong></td>
+                        <td><span class="badge ${dirClass}">${trade.direction}</span></td>
+                        <td>$${trade.entryPrice.toFixed(4)}</td>
+                        <td>${trade.closePrice ? '$' + trade.closePrice.toFixed(4) : '-'}</td>
+                        <td><span class="badge ${pnlClass}">$${trade.pnl.toFixed(2)}</span></td>
+                        <td><div class="remarks">${remarksHtml}</div></td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function updateCards(trades) {
+            const container = document.getElementById('trades-cards');
+
+            if (trades.length === 0) {
+                container.innerHTML = '<div class="no-data">No trades yet</div>';
+                return;
+            }
+
+            let html = '';
+            trades.forEach(trade => {
+                const entryDate = new Date(trade.entryTime).toLocaleDateString();
+                const pnlClass = trade.pnl >= 0 ? 'badge-profit' : 'badge-loss';
+                const dirClass = trade.direction === 'LONG' ? 'badge-long' : 'badge-short';
+
+                const remarksHtml = trade.remarks.map(r =>
+                    `<span class="remark-tag">${r.text}</span>`
+                ).join('');
+
+                html += `
+                    <div class="trade-card">
+                        <div class="trade-card-header">
+                            <strong>${trade.symbol}</strong>
+                            <span class="badge ${dirClass}">${trade.direction}</span>
+                        </div>
+                        <div class="trade-card-row">
+                            <span class="trade-card-label">Date:</span>
+                            <span class="trade-card-value">${entryDate}</span>
+                        </div>
+                        <div class="trade-card-row">
+                            <span class="trade-card-label">Entry:</span>
+                            <span class="trade-card-value">$${trade.entryPrice.toFixed(4)}</span>
+                        </div>
+                        <div class="trade-card-row">
+                            <span class="trade-card-label">Exit:</span>
+                            <span class="trade-card-value">${trade.closePrice ? '$' + trade.closePrice.toFixed(4) : '-'}</span>
+                        </div>
+                        <div class="trade-card-row">
+                            <span class="trade-card-label">PNL:</span>
+                            <span class="badge ${pnlClass}">$${trade.pnl.toFixed(2)}</span>
+                        </div>
+                        <div class="trade-card-row">
+                            <span class="trade-card-label">Remarks:</span>
+                            <div class="remarks">${remarksHtml}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Initialize on load
+        initChart();
+        loadTrades();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadTrades, 30000);
+    </script>
+</body>
+
+</html>

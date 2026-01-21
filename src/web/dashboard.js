@@ -37,10 +37,11 @@ class DashboardTransport extends winston.Transport {
  * Web Dashboard Class
  */
 class WebDashboard {
-    constructor(trader, config, positionTracker) {
+    constructor(trader, config, positionTracker, tradeLogger) {
         this.trader = trader;
         this.config = config;
         this.positionTracker = positionTracker;
+        this.tradeLogger = tradeLogger;
         this.port = parseInt(config.WEB_PORT || 5000);
         this.app = express();
         this.server = null;
@@ -262,6 +263,43 @@ class WebDashboard {
                 return res.json([]);
             }
             res.json(this.positionTracker.getUnprotectedPositions());
+        });
+
+        // Trade journal endpoints
+        this.app.get('/api/trades', (req, res) => {
+            if (!this.tradeLogger) {
+                return res.json({ trades: [] });
+            }
+
+            const filters = {
+                status: req.query.status,
+                symbol: req.query.symbol,
+                startDate: req.query.startDate,
+                endDate: req.query.endDate,
+                limit: parseInt(req.query.limit) || 100,
+                offset: parseInt(req.query.offset) || 0
+            };
+
+            const trades = this.tradeLogger.getTrades(filters);
+            res.json({ trades });
+        });
+
+        this.app.get('/api/trades/stats', (req, res) => {
+            if (!this.tradeLogger) {
+                return res.json({
+                    totalTrades: 0,
+                    winningTrades: 0,
+                    losingTrades: 0,
+                    winRate: 0,
+                    totalPnl: 0,
+                    avgPnl: 0,
+                    bestTrade: null,
+                    worstTrade: null
+                });
+            }
+
+            const stats = this.tradeLogger.getStats();
+            res.json(stats);
         });
 
         // Logs API - Get log history

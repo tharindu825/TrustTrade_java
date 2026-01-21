@@ -6,6 +6,7 @@ import TradingStrategy from './src/strategy/tradingStrategy.js';
 import WebDashboard from './src/web/dashboard.js';
 import TelegramAlerts from './src/utils/telegramAlerts.js';
 import PositionTracker from './src/utils/positionTracker.js';
+import TradeLogger from './src/utils/tradeLogger.js';
 
 // Load environment variables
 dotenv.config();
@@ -71,17 +72,22 @@ class TrustTradeBot {
 
             // Initialize Telegram alerts
             this.alerts = new TelegramAlerts(this.config);
+            await this.alerts.sendStartupAlert();
+
+            // Initialize trade logger
+            this.tradeLogger = new TradeLogger();
 
             // Initialize position tracker
             this.positionTracker = new PositionTracker(this.binanceTrader, this.alerts);
 
-            // Link position tracker to trading strategy
+            // Link dependencies to trading strategy
             this.tradingStrategy.setPositionTracker(this.positionTracker);
             this.tradingStrategy.setAlerts(this.alerts);
+            this.tradingStrategy.setTradeLogger(this.tradeLogger);
 
             // Initialize web dashboard
             logger.info('Starting web dashboard...');
-            this.webDashboard = new WebDashboard(this.binanceTrader, this.config, this.positionTracker);
+            this.webDashboard = new WebDashboard(this.binanceTrader, this.config, this.positionTracker, this.tradeLogger);
             this.webDashboard.start();
 
             // Initialize Telegram bot
