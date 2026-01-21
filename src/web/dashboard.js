@@ -82,6 +82,12 @@ class WebDashboard {
             res.sendFile(logsPath);
         });
 
+        // Journal page
+        this.app.get('/journal', (req, res) => {
+            const journalPath = path.join(__dirname, 'journal.html');
+            res.sendFile(journalPath);
+        });
+
         // API endpoint for positions
         this.app.get('/api/positions', async (req, res) => {
             try {
