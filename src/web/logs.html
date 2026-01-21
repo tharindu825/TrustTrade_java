@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustTrade Logs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 280px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 5px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            color: #4a5568;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav a:hover {
+            background: #f7fafc;
+            color: #667eea;
+        }
+
+        .sidebar-nav a.active {
+            background: #eef2ff;
+            color: #667eea;
+            border-left-color: #667eea;
+        }
+
+        .sidebar-nav a .icon {
+            margin-right: 12px;
+            font-size: 1.2em;
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 15px 20px;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-clear {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #e53e3e;
+        }
+
+        .btn-toggle {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-toggle:hover {
+            background: #38a169;
+        }
+
+        .btn-toggle.off {
+            background: #a0aec0;
+        }
+
+        select,
+        input {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.95em;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .log-container {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 600px;
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid #2d2d2d;
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-timestamp {
+            color: #718096;
+            flex-shrink: 0;
+        }
+
+        .log-level {
+            font-weight: bold;
+            flex-shrink: 0;
+            width: 60px;
+        }
+
+        .log-level.INFO {
+            color: #63b3ed;
+        }
+
+        .log-level.WARN {
+            color: #f6ad55;
+        }
+
+        .log-level.ERROR {
+            color: #fc8181;
+        }
+
+        .log-message {
+            color: #e2e8f0;
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .status {
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status.connected {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status.disconnected {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 80px;
+                height: calc(100vh - 80px);
+                z-index: 999;
+                transition: left 0.3s;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .controls button,
+            .controls select,
+            .controls input {
+                width: 100%;
+            }
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>📋 TrustTrade Logs</h1>
+    </div>
+
+    <div class="main-container">
+        <aside class="sidebar" id="sidebar">
+            <ul class="sidebar-nav">
+                <li><a href="/"><span class="icon">📊</span> Dashboard</a></li>
+                <li><a href="/settings"><span class="icon">⚙️</span> Settings</a></li>
+                <li><a href="/logs" class="active"><span class="icon">📋</span> Logs</a></li>
+                <div class="nav-divider"></div>
+                <li><a href="#" onclick="clearLogs(); return false;"><span class="icon">🗑️</span> Clear Logs</a></li>
+            </ul>
+        </aside>
+
+        <main class="content">
+            <div class="controls">
+                <span class="status" id="connection-status">Connecting...</span>
+                <button class="btn-clear" onclick="clearLogs()">🗑️ Clear Logs</button>
+                <button class="btn-toggle" id="autoscroll-btn" onclick="toggleAutoscroll()">📜 Auto-scroll: ON</button>
+                <select id="log-level-filter" onchange="filterLogs()">
+                    <option value="ALL">All Levels</option>
+                    <option value="INFO">Info Only</option>
+                    <option value="WARN">Warnings Only</option>
+                    <option value="ERROR">Errors Only</option>
+                </select>
+                <input type="text" id="search-input" placeholder="Search logs..." oninput="filterLogs()">
+            </div>
+
+            <div class="log-container" id="log-container"></div>
+        </main>
+    </div>
+
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+    <div class="overlay" id="overlay" onclick="toggleMobileMenu()"></div>
+
+    <script>
+        let eventSource = null;
+        let allLogs = [];
+        let autoscroll = true;
+
+        function toggleMobileMenu() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('show');
+        }
+
+        function connectToLogStream() {
+            eventSource = new EventSource('/api/logs/stream');
+
+            eventSource.onopen = () => {
+                console.log('Connected to log stream');
+                document.getElementById('connection-status').textContent = 'Connected';
+                document.getElementById('connection-status').className = 'status connected';
+            };
+
+            eventSource.onmessage = (event) => {
+                const log = JSON.parse(event.data);
+
+                if (log.type === 'connected') {
+                    loadLogHistory();
+                    return;
+                }
+
+                allLogs.push(log);
+                if (allLogs.length > 1000) {
+                    allLogs.shift();
+                }
+
+                filterLogs();
+            };
+
+            eventSource.onerror = () => {
+                console.error('Log stream connection error');
+                document.getElementById('connection-status').textContent = 'Disconnected';
+                document.getElementById('connection-status').className = 'status disconnected';
+
+                // Reconnect after 3 seconds
+                setTimeout(() => {
+                    eventSource.close();
+                    connectToLogStream();
+                }, 3000);
+            };
+        }
+
+        async function loadLogHistory() {
+            try {
+                const res = await fetch('/api/logs');
+                const data = await res.json();
+                allLogs = data.logs || [];
+                filterLogs();
+            } catch (error) {
+                console.error('Error loading log history:', error);
+            }
+        }
+
+        function filterLogs() {
+            const levelFilter = document.getElementById('log-level-filter').value;
+            const searchText = document.getElementById('search-input').value.toLowerCase();
+            const container = document.getElementById('log-container');
+
+            let filteredLogs = allLogs;
+
+            // Filter by level
+            if (levelFilter !== 'ALL') {
+                filteredLogs = filteredLogs.filter(log => log.level === levelFilter);
+            }
+
+            // Filter by search text
+            if (searchText) {
+                filteredLogs = filteredLogs.filter(log =>
+                    log.message.toLowerCase().includes(searchText)
+                );
+            }
+
+            // Render logs
+            container.innerHTML = filteredLogs.map(log => {
+                const time = new Date(log.timestamp).toLocaleTimeString();
+                return `
+                    <div class="log-entry">
+                        <span class="log-timestamp">${time}</span>
+                        <span class="log-level ${log.level}">${log.level}</span>
+                        <span class="log-message">${escapeHtml(log.message)}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Auto-scroll to bottom
+            if (autoscroll) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function clearLogs() {
+            if (confirm('Are you sure you want to clear all logs?')) {
+                allLogs = [];
+                document.getElementById('log-container').innerHTML = '';
+            }
+        }
+
+        function toggleAutoscroll() {
+            autoscroll = !autoscroll;
+            const btn = document.getElementById('autoscroll-btn');
+            btn.textContent = `📜 Auto-scroll: ${autoscroll ? 'ON' : 'OFF'}`;
+            btn.className = autoscroll ? 'btn-toggle' : 'btn-toggle off';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Connect on page load
+        connectToLogStream();
+    </script>
+</body>
+
+</html>

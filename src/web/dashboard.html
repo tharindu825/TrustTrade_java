@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustTrade Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 280px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 5px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            color: #4a5568;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav a:hover {
+            background: #f7fafc;
+            color: #667eea;
+        }
+
+        .sidebar-nav a.active {
+            background: #eef2ff;
+            color: #667eea;
+            border-left-color: #667eea;
+        }
+
+        .sidebar-nav a .icon {
+            margin-right: 12px;
+            font-size: 1.2em;
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 15px 20px;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card.success {
+            border-left-color: #48bb78;
+        }
+
+        .stat-card.warning {
+            border-left-color: #ed8936;
+        }
+
+        .stat-card.danger {
+            border-left-color: #f56565;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            color: #2d3748;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stat-change {
+            font-size: 0.85em;
+            margin-top: 8px;
+        }
+
+        .stat-change.positive {
+            color: #48bb78;
+        }
+
+        .stat-change.negative {
+            color: #f56565;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .card-header h2 {
+            color: #2d3748;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-header h2 .icon {
+            margin-right: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f7fafc;
+            color: #4a5568;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #a0aec0;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            transform: translateY(-1px);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-long {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-short {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .badge-profit {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-loss {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 80px;
+                height: calc(100vh - 80px);
+                z-index: 999;
+                transition: left 0.3s;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 1.4em;
+            }
+
+            table {
+                font-size: 0.85em;
+            }
+
+            th,
+            td {
+                padding: 10px 8px;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🚀 TrustTrade Dashboard</h1>
+    </div>
+
+    <div class="main-container">
+        <aside class="sidebar" id="sidebar">
+            <ul class="sidebar-nav">
+                <li><a href="/" class="active"><span class="icon">📊</span> Dashboard</a></li>
+                <li><a href="/settings"><span class="icon">⚙️</span> Settings</a></li>
+                <li><a href="/logs" id="logs-link"><span class="icon">📋</span> Logs</a></li>
+                <div class="nav-divider"></div>
+                <li><a href="#" onclick="refreshData(); return false;"><span class="icon">🔄</span> Refresh Data</a>
+                </li>
+            </ul>
+        </aside>
+
+        <main class="content">
+            <div class="stats-grid">
+                <div class="stat-card success">
+                    <div class="stat-label">Available Balance</div>
+                    <div class="stat-value" id="balance">Loading...</div>
+                    <div class="stat-change positive" id="balance-change">USDT</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Open Positions</div>
+                    <div class="stat-value" id="positions-count">0</div>
+                    <div class="stat-change" id="positions-info">Active trades</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-label">Open Orders</div>
+                    <div class="stat-value" id="orders-count">0</div>
+                    <div class="stat-change">Pending orders</div>
+                </div>
+                <div class="stat-card" id="pnl-card">
+                    <div class="stat-label">Total PNL</div>
+                    <div class="stat-value" id="total-pnl">$0.00</div>
+                    <div class="stat-change" id="pnl-change">Today</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2><span class="icon">📈</span> Profit & Loss Chart</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="profitChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2><span class="icon">💼</span> Current Positions</h2>
+                </div>
+                <div id="positions-table">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading positions...
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2><span class="icon">📝</span> Open Orders</h2>
+                </div>
+                <div id="orders-table">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading orders...
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+    <div class="overlay" id="overlay" onclick="toggleMobileMenu()"></div>
+
+    <script>
+        let profitChart = null;
+
+        function toggleMobileMenu() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('show');
+        }
+
+        async function closePosition(symbol) {
+            if (!confirm(`Are you sure you want to close position for ${symbol}?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/close-position', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(data.message);
+                    loadData();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error closing position: ' + error.message);
+            }
+        }
+
+        function initProfitChart() {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            profitChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Cumulative Profit (USDT)',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProfitChart(positions) {
+            if (!profitChart) return;
+
+            let cumulativePNL = 0;
+            const labels = [];
+            const data = [];
+
+            positions.forEach((pos, index) => {
+                const pnl = parseFloat(pos.unrealizedProfit);
+                cumulativePNL += pnl;
+                labels.push(`Position ${index + 1}`);
+                data.push(cumulativePNL);
+            });
+
+            const now = new Date();
+            labels.push(now.toLocaleTimeString());
+            data.push(cumulativePNL);
+
+            profitChart.data.labels = labels;
+            profitChart.data.datasets[0].data = data;
+            profitChart.update();
+        }
+
+        async function loadData() {
+            try {
+                console.log('Loading dashboard data...');
+
+                const accountRes = await fetch('/api/account');
+                if (!accountRes.ok) {
+                    throw new Error(`Account API failed: ${accountRes.status}`);
+                }
+                const accountData = await accountRes.json();
+                console.log('Account data:', accountData);
+                document.getElementById('balance').textContent = accountData.balance.toFixed(2);
+
+                const posRes = await fetch('/api/positions');
+                if (!posRes.ok) {
+                    throw new Error(`Positions API failed: ${posRes.status}`);
+                }
+                const posData = await posRes.json();
+                console.log('Positions data:', posData);
+
+                const positionsCount = posData.positions.length;
+                document.getElementById('positions-count').textContent = positionsCount;
+                document.getElementById('positions-info').textContent = positionsCount > 0 ? 'Active trades' : 'No active trades';
+
+                let totalPNL = 0;
+                posData.positions.forEach(pos => {
+                    totalPNL += parseFloat(pos.unrealizedProfit);
+                });
+
+                const pnlCard = document.getElementById('pnl-card');
+                const pnlValue = document.getElementById('total-pnl');
+                const pnlChange = document.getElementById('pnl-change');
+
+                pnlValue.textContent = '$' + totalPNL.toFixed(2);
+
+                if (totalPNL > 0) {
+                    pnlCard.classList.add('success');
+                    pnlCard.classList.remove('danger');
+                    pnlChange.classList.add('positive');
+                    pnlChange.classList.remove('negative');
+                    pnlChange.textContent = '↑ Profit';
+                } else if (totalPNL < 0) {
+                    pnlCard.classList.add('danger');
+                    pnlCard.classList.remove('success');
+                    pnlChange.classList.add('negative');
+                    pnlChange.classList.remove('positive');
+                    pnlChange.textContent = '↓ Loss';
+                } else {
+                    pnlCard.classList.remove('success', 'danger');
+                    pnlChange.classList.remove('positive', 'negative');
+                    pnlChange.textContent = 'Break even';
+                }
+
+                updateProfitChart(posData.positions);
+
+                if (posData.positions.length > 0) {
+                    let html = '<table><tr><th>Symbol</th><th>Side</th><th>Amount</th><th>Entry Price</th><th>Mark Price</th><th>PNL</th><th>Leverage</th><th>Action</th></tr>';
+                    posData.positions.forEach(pos => {
+                        const pnl = parseFloat(pos.unrealizedProfit);
+                        const pnlClass = pnl >= 0 ? 'badge-profit' : 'badge-loss';
+                        const side = parseFloat(pos.positionAmt) > 0 ? 'LONG' : 'SHORT';
+                        const sideClass = side === 'LONG' ? 'badge-long' : 'badge-short';
+
+                        html += `<tr>
+                            <td><strong>${pos.symbol}</strong></td>
+                            <td><span class="badge ${sideClass}">${side}</span></td>
+                            <td>${Math.abs(parseFloat(pos.positionAmt))}</td>
+                            <td>${parseFloat(pos.entryPrice).toFixed(4)}</td>
+                            <td>${parseFloat(pos.markPrice).toFixed(4)}</td>
+                            <td><span class="badge ${pnlClass}">${pnl.toFixed(2)} USDT</span></td>
+                            <td>${pos.leverage}x</td>
+                            <td><button class="btn btn-danger" onclick="closePosition('${pos.symbol}')">Close</button></td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    document.getElementById('positions-table').innerHTML = html;
+                } else {
+                    document.getElementById('positions-table').innerHTML = '<p class="no-data">No open positions</p>';
+                }
+
+                const ordersRes = await fetch('/api/orders');
+                if (!ordersRes.ok) {
+                    throw new Error(`Orders API failed: ${ordersRes.status}`);
+                }
+                const ordersData = await ordersRes.json();
+                console.log('Orders data:', ordersData);
+
+                document.getElementById('orders-count').textContent = ordersData.orders.length;
+
+                if (ordersData.orders.length > 0) {
+                    let html = '<table><tr><th>Symbol</th><th>Type</th><th>Side</th><th>Price</th><th>Quantity</th><th>Status</th></tr>';
+                    ordersData.orders.forEach(order => {
+                        html += `<tr>
+                            <td><strong>${order.symbol}</strong></td>
+                            <td>${order.type}</td>
+                            <td>${order.side}</td>
+                            <td>${parseFloat(order.price || order.stopPrice || 0).toFixed(4)}</td>
+                            <td>${order.origQty}</td>
+                            <td><span class="badge badge-long">${order.status}</span></td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    document.getElementById('orders-table').innerHTML = html;
+                } else {
+                    document.getElementById('orders-table').innerHTML = '<p class="no-data">No open orders</p>';
+                }
+
+                console.log('Dashboard data loaded successfully');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('balance').textContent = 'Error';
+                document.getElementById('positions-table').innerHTML = '<p class="no-data">Error loading positions: ' + error.message + '</p>';
+                document.getElementById('orders-table').innerHTML = '<p class="no-data">Error loading orders: ' + error.message + '</p>';
+            }
+        }
+
+        function refreshData() {
+            loadData();
+        }
+
+        initProfitChart();
+        loadData();
+        setInterval(loadData, 10000);
+    </script>
+</body>
+
+</html>

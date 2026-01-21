@@ -1,0 +1,19 @@
+Connected to Telegram successfully!
+: Session string: 1BQANOTEuMTA4LjU2LjE1NwG7oFO8xyOgbV2wIkkeifA4CS/dOeVW3Vb5UtYo3ecbfnQxkOAWyu3Jku/iwwHgZHjE3RnBa2ZfW83aa646Y5rEsj2k90NO8QVpZ0Yd93CMqJgZ//XaFzwSgDzD5rvvrHKAzp484ROo6cM5xXHvTqNluKGxI2RfE/x2FwLpksZgQsGD/PE7tTLGnK/DuP/yPdHqQCKdvfwbAGVTdRcnRzGIZdz32ZK1ZkuPRS7bLJalmGHrD+OkBbH3YlGOLM9v5ZmfC9XBGa4ntAc51iAdyFOsALtfXq6ZIqIyTxDYjLOcnhle73ju1hkXgRhUw4k8E8dFDoztU+LGxIAkvaC3ZW2v7Q==
+: ✅ All components initialized successfully
+: 👂 Starting to listen for signals...
+: Resolving channel: 2596425817:7931839598301278885
+: Channel resolved: Scalp | Hello Traders
+: Listening to channel: Scalp | Hello Traders...
+: Event handler registered. Client listening for messages...
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function
+: Unhandled Rejection at: [object Promise], reason: TypeError: builder.resolve is not a function

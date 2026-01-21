@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustTrade Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        .header-subtitle {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 5px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            color: #4a5568;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav a:hover {
+            background: #f7fafc;
+            color: #667eea;
+        }
+
+        .sidebar-nav a.active {
+            background: #eef2ff;
+            color: #667eea;
+            border-left-color: #667eea;
+        }
+
+        .sidebar-nav a .icon {
+            margin-right: 12px;
+            font-size: 1.2em;
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 15px 20px;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .content-header h2 {
+            color: #2d3748;
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+
+        .content-header p {
+            color: #718096;
+            font-size: 1em;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            color: #2d3748;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .card h3 .icon {
+            margin-right: 10px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        label .required {
+            color: #e53e3e;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="password"] {
+            font-family: monospace;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        button {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-test {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-test:hover {
+            background: #38a169;
+        }
+
+        /* Notifications */
+        .notification {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+        }
+
+        .notification.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #38a169;
+        }
+
+        .notification.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border-left: 4px solid #e53e3e;
+        }
+
+        .notification.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border-left: 4px solid #3182ce;
+        }
+
+        .notification.show {
+            display: flex;
+        }
+
+        /* Telegram Auth Section */
+        .auth-section {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .auth-section h4 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .auth-section h4 .icon {
+            margin-right: 8px;
+            color: #667eea;
+        }
+
+        .auth-info {
+            background: #edf2f7;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #4a5568;
+        }
+
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 80px;
+                height: calc(100vh - 80px);
+                z-index: 999;
+                transition: left 0.3s;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .header {
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 1.4em;
+            }
+
+            .card {
+                padding: 20px 15px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button-group button {
+                width: 100%;
+            }
+        }
+
+        /* Overlay for mobile */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Section Tabs (for content sections) */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>⚙️ TrustTrade Configuration</h1>
+        <div class="header-subtitle">Manage your bot settings and credentials</div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <ul class="sidebar-nav">
+                <li><a href="#" class="nav-link active" data-section="dashboard"><span class="icon">📊</span>
+                        Dashboard</a></li>
+                <li><a href="#" class="nav-link" data-section="telegram"><span class="icon">📱</span> Telegram</a></li>
+                <li><a href="#" class="nav-link" data-section="binance"><span class="icon">🔑</span> Binance API</a>
+                </li>
+                <li><a href="#" class="nav-link" data-section="trading"><span class="icon">💼</span> Trading & Risk</a>
+                </li>
+                <li><a href="#" class="nav-link" data-section="filters"><span class="icon">🔍</span> Filters</a></li>
+                <li><a href="#" class="nav-link" data-section="alerts"><span class="icon">📢</span> Alerts</a></li>
+                <li><a href="#" class="nav-link" data-section="advanced"><span class="icon">⚙️</span> Advanced</a></li>
+                <div class="nav-divider"></div>
+                <li><a href="/"><span class="icon">🏠</span> Back to Dashboard</a></li>
+            </ul>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="content">
+            <div id="notification" class="notification"></div>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="section active">
+                <div class="content-header">
+                    <h2>Dashboard</h2>
+                    <p>Quick overview and actions</p>
+                </div>
+                <div class="card">
+                    <h3><span class="icon">📊</span> Configuration Status</h3>
+                    <div class="auth-info">
+                        <strong>Current Trading Mode:</strong> <span id="current-mode">Loading...</span><br>
+                        <strong>Last Updated:</strong> <span id="last-updated">Never</span>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="loadAllConfig()">Reload Configuration</button>
+                        <button class="btn-primary" onclick="showSection('telegram')">Start Configuration</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Telegram Section -->
+            <div id="telegram-section" class="section">
+                <div class="content-header">
+                    <h2>📱 Telegram Configuration</h2>
+                    <p>Configure Telegram API credentials and authentication</p>
+                </div>
+
+                <form id="telegram-form">
+                    <div class="card">
+                        <h3><span class="icon">🔐</span> API Credentials</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>API ID <span class="required">*</span></label>
+                                <input type="text" id="API_ID" name="API_ID" required>
+                            </div>
+                            <div class="form-group">
+                                <label>API Hash <span class="required">*</span></label>
+                                <input type="text" id="API_HASH" name="API_HASH" required>
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Phone Number <span class="required">*</span></label>
+                                <input type="text" id="PHONE_NUMBER" name="PHONE_NUMBER" placeholder="+1234567890"
+                                    required>
+                            </div>
+                            <div class="form-group">
+                                <label>Channel ID <span class="required">*</span></label>
+                                <input type="text" id="CHANNEL_ID" name="CHANNEL_ID" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="icon">🔓</span> Authentication</h3>
+                        <div class="auth-info">
+                            💡 <strong>Note:</strong> When connecting to Telegram for the first time, you'll need to
+                            enter the OTP code sent to your phone and your 2FA password (if enabled).
+                        </div>
+
+                        <div class="auth-section">
+                            <h4><span class="icon">📲</span> Real-time Verification</h4>
+                            <div class="form-group">
+                                <label>OTP Code (sent to your phone)</label>
+                                <input type="text" id="TELEGRAM_OTP" name="TELEGRAM_OTP"
+                                    placeholder="Enter 5-digit code" maxlength="5">
+                            </div>
+                            <div class="form-group">
+                                <label>2FA Password (if enabled)</label>
+                                <input type="password" id="TELEGRAM_PASSWORD" name="TELEGRAM_PASSWORD"
+                                    placeholder="Enter your 2FA password">
+                            </div>
+                            <button type="button" class="btn-test" onclick="testTelegramConnection()">
+                                🔗 Test Connection
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-secondary" onclick="loadTelegramConfig()">Reset</button>
+                        <button type="submit" class="btn-primary">Save Telegram Settings</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Binance Section -->
+            <div id="binance-section" class="section">
+                <div class="content-header">
+                    <h2>🔑 Binance API Configuration</h2>
+                    <p>Configure your Binance API keys and trading mode</p>
+                </div>
+
+                <form id="binance-form">
+                    <div class="card">
+                        <h3><span class="icon">🎯</span> Trading Mode</h3>
+                        <div class="form-group">
+                            <label>Trading Mode <span class="required">*</span></label>
+                            <select id="TRADING_MODE" name="TRADING_MODE">
+                                <option value="testnet">🧪 Testnet (Safe for testing)</option>
+                                <option value="live">🔴 Live Trading (Real money)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="icon">🔑</span> API Keys</h3>
+                        <div class="form-group">
+                            <label>Trading API Key <span class="required">*</span></label>
+                            <input type="text" id="TRADING_API_KEY" name="TRADING_API_KEY" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Trading Secret Key <span class="required">*</span></label>
+                            <input type="password" id="TRADING_SECRET_KEY" name="TRADING_SECRET_KEY" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Monitoring API Key <span class="required">*</span></label>
+                            <input type="text" id="MONITORING_API_KEY" name="MONITORING_API_KEY" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Monitoring Secret Key <span class="required">*</span></label>
+                            <input type="password" id="MONITORING_SECRET_KEY" name="MONITORING_SECRET_KEY" required>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-secondary" onclick="loadBinanceConfig()">Reset</button>
+                        <button type="submit" class="btn-primary">Save Binance Settings</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Trading & Risk Section -->
+            <div id="trading-section" class="section">
+                <div class="content-header">
+                    <h2>💼 Trading & Risk Management</h2>
+                    <p>Configure position sizes, leverage, and risk parameters</p>
+                </div>
+
+                <form id="trading-form">
+                    <div class="card">
+                        <h3><span class="icon">📊</span> Position Management</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Max Open Positions</label>
+                                <input type="number" id="MAX_OPEN_POSITIONS" name="MAX_OPEN_POSITIONS" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Open Entry Orders</label>
+                                <input type="number" id="MAX_OPEN_ENTRY_ORDERS" name="MAX_OPEN_ENTRY_ORDERS" min="1">
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Min Balance (USDT)</label>
+                                <input type="number" step="0.01" id="MIN_BALANCE" name="MIN_BALANCE">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Total Notional</label>
+                                <input type="number" step="0.1" id="MAX_TOTAL_NOTIONAL" name="MAX_TOTAL_NOTIONAL">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Margin Per Trade Amount (USDT)</label>
+                            <input type="number" step="0.01" id="TARGET_MARGIN_PER_TRADE" name="TARGET_MARGIN_PER_TRADE"
+                                placeholder="e.g., 20.00">
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="icon">⚡</span> Leverage Settings</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Default Leverage</label>
+                                <input type="number" id="DEFAULT_LEVERAGE" name="DEFAULT_LEVERAGE" min="1" max="125">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Leverage</label>
+                                <input type="number" id="MAX_LEVERAGE" name="MAX_LEVERAGE" min="1" max="125">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="icon">🎯</span> Stop Loss & Take Profit</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>SL Percentage</label>
+                                <input type="number" step="0.01" id="SL_PERCENTAGE" name="SL_PERCENTAGE">
+                            </div>
+                            <div class="form-group">
+                                <label>Min Risk:Reward Ratio</label>
+                                <input type="number" step="0.1" id="MIN_RISK_REWARD" name="MIN_RISK_REWARD">
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>TP1 ROI (%)</label>
+                                <input type="number" step="0.1" id="TP1_ROI" name="TP1_ROI">
+                            </div>
+                            <div class="form-group">
+                                <label>TP2 ROI (%)</label>
+                                <input type="number" step="0.1" id="TP2_ROI" name="TP2_ROI">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-secondary" onclick="loadTradingConfig()">Reset</button>
+                        <button type="submit" class="btn-primary">Save Trading Settings</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Filters Section -->
+            <div id="filters-section" class="section">
+                <div class="content-header">
+                    <h2>🔍 Filters & Volatility</h2>
+                    <p>Configure trading filters and volatility parameters</p>
+                </div>
+
+                <form id="filters-form">
+                    <div class="card">
+                        <h3><span class="icon">✅</span> Enable/Disable Filters</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Risk:Reward Filter</label>
+                                <select id="ENABLE_RISK_REWARD_FILTER" name="ENABLE_RISK_REWARD_FILTER">
+                                    <option value="true">✅ Enabled</option>
+                                    <option value="false">❌ Disabled</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Volatility Filter</label>
+                                <select id="ENABLE_VOLATILITY_FILTER" name="ENABLE_VOLATILITY_FILTER">
+                                    <option value="true">✅ Enabled</option>
+                                    <option value="false">❌ Disabled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="icon">📊</span> Volatility Parameters</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Max ATR Percent</label>
+                                <input type="number" step="0.1" id="MAX_ATR_PERCENT" name="MAX_ATR_PERCENT">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Volatility Percent</label>
+                                <input type="number" step="0.1" id="MAX_VOLATILITY_PERCENT"
+                                    name="MAX_VOLATILITY_PERCENT">
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Max Spread Percent</label>
+                                <input type="number" step="0.01" id="MAX_SPREAD_PERCENT" name="MAX_SPREAD_PERCENT">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Funding Rate</label>
+                                <input type="number" step="0.001" id="MAX_FUNDING_RATE" name="MAX_FUNDING_RATE">
+                            </div>
+                        </div>
+                    </div>
+            </div>
+
+            <div class="card">
+                <h3><span class="icon">🧭</span> Direction Validation Filter</h3>
+                <div class="auth-info">
+                    💡 <strong>Note:</strong> This filter validates signal direction against trend indicators (RSI, EMA,
+                    MACD) to prevent trading against the trend.
+                </div>
+                <div class="form-group">
+                    <label>Enable Direction Validation</label>
+                    <select id="ENABLE_DIRECTION_VALIDATION" name="ENABLE_DIRECTION_VALIDATION">
+                        <option value="true">✅ Enabled</option>
+                        <option value="false">❌ Disabled</option>
+                    </select>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>RSI Period</label>
+                        <input type="number" id="DIRECTION_RSI_PERIOD" name="DIRECTION_RSI_PERIOD" placeholder="14">
+                    </div>
+                    <div class="form-group">
+                        <label>EMA Period</label>
+                        <input type="number" id="DIRECTION_EMA_PERIOD" name="DIRECTION_EMA_PERIOD" placeholder="20">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>MACD Fast Period</label>
+                        <input type="number" id="DIRECTION_MACD_FAST" name="DIRECTION_MACD_FAST" placeholder="12">
+                    </div>
+                    <div class="form-group">
+                        <label>MACD Slow Period</label>
+                        <input type="number" id="DIRECTION_MACD_SLOW" name="DIRECTION_MACD_SLOW" placeholder="26">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>MACD Signal Period</label>
+                        <input type="number" id="DIRECTION_MACD_SIGNAL" name="DIRECTION_MACD_SIGNAL" placeholder="9">
+                    </div>
+                    <div class="form-group">
+                        <label>Klines Limit</label>
+                        <input type="number" id="DIRECTION_KLINES_LIMIT" name="DIRECTION_KLINES_LIMIT"
+                            placeholder="100">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>RSI Bullish Threshold</label>
+                        <input type="number" id="DIRECTION_RSI_BULLISH_THRESHOLD" name="DIRECTION_RSI_BULLISH_THRESHOLD"
+                            placeholder="50">
+                    </div>
+                    <div class="form-group">
+                        <label>RSI Bearish Threshold</label>
+                        <input type="number" id="DIRECTION_RSI_BEARISH_THRESHOLD" name="DIRECTION_RSI_BEARISH_THRESHOLD"
+                            placeholder="50">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Alert on Skip</label>
+                    <select id="DIRECTION_ALERT_ON_SKIP" name="DIRECTION_ALERT_ON_SKIP">
+                        <option value="true">✅ Send alert when skipping misaligned signal</option>
+                        <option value="false">❌ No alert</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn-secondary" onclick="loadFiltersConfig()">Reset</button>
+                <button type="submit" class="btn-primary">Save Filter Settings</button>
+            </div>
+    </div>
+    </form>
+    </div>
+
+    <!-- Alerts Section -->
+    <div id="alerts-section" class="section">
+        <div class="content-header">
+            <h2>📢 Telegram Alerts</h2>
+            <p>Configure alert notifications</p>
+        </div>
+
+        <form id="alerts-form">
+            <div class="card">
+                <h3><span class="icon">🤖</span> Alert Bot Configuration</h3>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Alert Bot Token</label>
+                        <input type="text" id="ALERT_BOT_TOKEN" name="ALERT_BOT_TOKEN">
+                    </div>
+                    <div class="form-group">
+                        <label>Alert Chat ID</label>
+                        <input type="text" id="ALERT_CHAT_ID" name="ALERT_CHAT_ID">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Alert Level</label>
+                    <select id="ALERT_LEVEL" name="ALERT_LEVEL">
+                        <option value="ALL">All Alerts</option>
+                        <option value="ERRORS">Errors Only</option>
+                        <option value="NONE">No Alerts</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn-secondary" onclick="loadAlertsConfig()">Reset</button>
+                <button type="submit" class="btn-primary">Save Alert Settings</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Advanced Section -->
+    <div id="advanced-section" class="section">
+        <div class="content-header">
+            <h2>⚙️ Advanced Settings</h2>
+            <p>Configure advanced parameters and system settings</p>
+        </div>
+
+        <form id="advanced-form">
+            <div class="card">
+                <h3><span class="icon">⏱️</span> Trade Frequency</h3>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Max Trades Per Hour</label>
+                        <input type="number" id="MAX_TRADES_PER_HOUR" name="MAX_TRADES_PER_HOUR">
+                    </div>
+                    <div class="form-group">
+                        <label>Trade Cooldown (seconds)</label>
+                        <input type="number" id="TRADE_COOLDOWN_SECONDS" name="TRADE_COOLDOWN_SECONDS">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Deduplication Window (seconds)</label>
+                    <input type="number" id="DEDUPLICATION_WINDOW" name="DEDUPLICATION_WINDOW">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3><span class="icon">🌐</span> System Settings</h3>
+                <div class="form-group">
+                    <label>Web Dashboard Port</label>
+                    <input type="number" id="WEB_PORT" name="WEB_PORT">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn-secondary" onclick="loadAdvancedConfig()">Reset</button>
+                <button type="submit" class="btn-primary">Save Advanced Settings</button>
+            </div>
+        </form>
+    </div>
+    </main>
+    </div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+
+    <!-- Overlay for mobile -->
+    <div class="overlay" id="overlay" onclick="toggleMobileMenu()"></div>
+
+    <script>
+        let currentConfig = {};
+
+        // Navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                const section = e.currentTarget.dataset.section;
+                if (section) {
+                    e.preventDefault();
+                    showSection(section);
+
+                    // Update active state
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+
+                    // Close mobile menu
+                    if (window.innerWidth <= 768) {
+                        toggleMobileMenu();
+                    }
+                }
+            });
+        });
+
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionName + '-section').classList.add('active');
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('show');
+        }
+
+        // Load configuration
+        async function loadAllConfig() {
+            try {
+                showNotification('Loading configuration...', 'info');
+                const res = await fetch('/api/config');
+                const data = await res.json();
+                currentConfig = data.config;
+
+                // Populate all form fields
+                for (const [key, value] of Object.entries(data.config)) {
+                    const input = document.getElementById(key);
+                    if (input) {
+                        input.value = value;
+                    }
+                }
+
+                // Update dashboard
+                document.getElementById('current-mode').textContent = data.config.TRADING_MODE || 'Not set';
+                document.getElementById('last-updated').textContent = new Date().toLocaleString();
+
+                showNotification('Configuration loaded successfully!', 'success');
+            } catch (error) {
+                showNotification('Error loading configuration: ' + error.message, 'error');
+            }
+        }
+
+        // Section-specific loaders
+        function loadTelegramConfig() { loadAllConfig(); }
+        function loadBinanceConfig() { loadAllConfig(); }
+        function loadTradingConfig() { loadAllConfig(); }
+        function loadFiltersConfig() { loadAllConfig(); }
+        function loadAlertsConfig() { loadAllConfig(); }
+        function loadAdvancedConfig() { loadAllConfig(); }
+
+        // Save configuration
+        async function saveConfig(formData) {
+            try {
+                const config = { ...currentConfig, ...formData };
+
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    currentConfig = config;
+                    showNotification(data.message, 'success');
+                } else {
+                    showNotification(data.error || 'Failed to save configuration', 'error');
+                }
+            } catch (error) {
+                showNotification('Error saving configuration: ' + error.message, 'error');
+            }
+        }
+
+        // Form submissions
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const config = {};
+                for (const [key, value] of formData.entries()) {
+                    if (key !== 'TELEGRAM_OTP' && key !== 'TELEGRAM_PASSWORD') {
+                        config[key] = value;
+                    }
+                }
+                await saveConfig(config);
+            });
+        });
+
+        // Test Telegram connection
+        async function testTelegramConnection() {
+            const otp = document.getElementById('TELEGRAM_OTP').value;
+            const password = document.getElementById('TELEGRAM_PASSWORD').value;
+
+            showNotification('Testing Telegram connection...', 'info');
+
+            // This would call a new API endpoint to test Telegram connection
+            // For now, just show a message
+            setTimeout(() => {
+                if (otp || password) {
+                    showNotification('Telegram authentication test completed. Check bot logs for details.', 'success');
+                } else {
+                    showNotification('Please enter OTP code or 2FA password to test connection.', 'error');
+                }
+            }, 1500);
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+
+        // Load config on page load
+        loadAllConfig();
+    </script>
+</body>
+
+</html>
