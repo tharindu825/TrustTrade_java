@@ -712,159 +712,163 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="card">
+                        <h3><span class="icon">🧭</span> Direction Validation Filter</h3>
+                        <div class="auth-info">
+                            💡 <strong>Note:</strong> This filter validates signal direction against trend indicators
+                            (RSI, EMA,
+                            MACD) to prevent trading against the trend.
+                        </div>
+                        <div class="form-group">
+                            <label>Enable Direction Validation</label>
+                            <select id="ENABLE_DIRECTION_VALIDATION" name="ENABLE_DIRECTION_VALIDATION">
+                                <option value="true">✅ Enabled</option>
+                                <option value="false">❌ Disabled</option>
+                            </select>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>RSI Period</label>
+                                <input type="number" id="DIRECTION_RSI_PERIOD" name="DIRECTION_RSI_PERIOD"
+                                    placeholder="14">
+                            </div>
+                            <div class="form-group">
+                                <label>EMA Period</label>
+                                <input type="number" id="DIRECTION_EMA_PERIOD" name="DIRECTION_EMA_PERIOD"
+                                    placeholder="20">
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>MACD Fast Period</label>
+                                <input type="number" id="DIRECTION_MACD_FAST" name="DIRECTION_MACD_FAST"
+                                    placeholder="12">
+                            </div>
+                            <div class="form-group">
+                                <label>MACD Slow Period</label>
+                                <input type="number" id="DIRECTION_MACD_SLOW" name="DIRECTION_MACD_SLOW"
+                                    placeholder="26">
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>MACD Signal Period</label>
+                                <input type="number" id="DIRECTION_MACD_SIGNAL" name="DIRECTION_MACD_SIGNAL"
+                                    placeholder="9">
+                            </div>
+                            <div class="form-group">
+                                <label>Klines Limit</label>
+                                <input type="number" id="DIRECTION_KLINES_LIMIT" name="DIRECTION_KLINES_LIMIT"
+                                    placeholder="100">
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>RSI Bullish Threshold</label>
+                                <input type="number" id="DIRECTION_RSI_BULLISH_THRESHOLD"
+                                    name="DIRECTION_RSI_BULLISH_THRESHOLD" placeholder="50">
+                            </div>
+                            <div class="form-group">
+                                <label>RSI Bearish Threshold</label>
+                                <input type="number" id="DIRECTION_RSI_BEARISH_THRESHOLD"
+                                    name="DIRECTION_RSI_BEARISH_THRESHOLD" placeholder="50">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Alert on Skip</label>
+                            <select id="DIRECTION_ALERT_ON_SKIP" name="DIRECTION_ALERT_ON_SKIP">
+                                <option value="true">✅ Send alert when skipping misaligned signal</option>
+                                <option value="false">❌ No alert</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-secondary" onclick="loadFiltersConfig()">Reset</button>
+                        <button type="submit" class="btn-primary">Save Filter Settings</button>
+                    </div>
+                </form>
             </div>
 
-            <div class="card">
-                <h3><span class="icon">🧭</span> Direction Validation Filter</h3>
-                <div class="auth-info">
-                    💡 <strong>Note:</strong> This filter validates signal direction against trend indicators (RSI, EMA,
-                    MACD) to prevent trading against the trend.
+            <!-- Alerts Section -->
+            <div id="alerts-section" class="section">
+                <div class="content-header">
+                    <h2>📢 Telegram Alerts</h2>
+                    <p>Configure alert notifications</p>
                 </div>
-                <div class="form-group">
-                    <label>Enable Direction Validation</label>
-                    <select id="ENABLE_DIRECTION_VALIDATION" name="ENABLE_DIRECTION_VALIDATION">
-                        <option value="true">✅ Enabled</option>
-                        <option value="false">❌ Disabled</option>
-                    </select>
-                </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>RSI Period</label>
-                        <input type="number" id="DIRECTION_RSI_PERIOD" name="DIRECTION_RSI_PERIOD" placeholder="14">
+
+                <form id="alerts-form">
+                    <div class="card">
+                        <h3><span class="icon">🤖</span> Alert Bot Configuration</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Alert Bot Token</label>
+                                <input type="text" id="ALERT_BOT_TOKEN" name="ALERT_BOT_TOKEN">
+                            </div>
+                            <div class="form-group">
+                                <label>Alert Chat ID</label>
+                                <input type="text" id="ALERT_CHAT_ID" name="ALERT_CHAT_ID">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Alert Level</label>
+                            <select id="ALERT_LEVEL" name="ALERT_LEVEL">
+                                <option value="ALL">All Alerts</option>
+                                <option value="ERRORS">Errors Only</option>
+                                <option value="NONE">No Alerts</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>EMA Period</label>
-                        <input type="number" id="DIRECTION_EMA_PERIOD" name="DIRECTION_EMA_PERIOD" placeholder="20">
+
+                    <div class="button-group">
+                        <button type="button" class="btn-secondary" onclick="loadAlertsConfig()">Reset</button>
+                        <button type="submit" class="btn-primary">Save Alert Settings</button>
                     </div>
-                </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>MACD Fast Period</label>
-                        <input type="number" id="DIRECTION_MACD_FAST" name="DIRECTION_MACD_FAST" placeholder="12">
-                    </div>
-                    <div class="form-group">
-                        <label>MACD Slow Period</label>
-                        <input type="number" id="DIRECTION_MACD_SLOW" name="DIRECTION_MACD_SLOW" placeholder="26">
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>MACD Signal Period</label>
-                        <input type="number" id="DIRECTION_MACD_SIGNAL" name="DIRECTION_MACD_SIGNAL" placeholder="9">
-                    </div>
-                    <div class="form-group">
-                        <label>Klines Limit</label>
-                        <input type="number" id="DIRECTION_KLINES_LIMIT" name="DIRECTION_KLINES_LIMIT"
-                            placeholder="100">
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>RSI Bullish Threshold</label>
-                        <input type="number" id="DIRECTION_RSI_BULLISH_THRESHOLD" name="DIRECTION_RSI_BULLISH_THRESHOLD"
-                            placeholder="50">
-                    </div>
-                    <div class="form-group">
-                        <label>RSI Bearish Threshold</label>
-                        <input type="number" id="DIRECTION_RSI_BEARISH_THRESHOLD" name="DIRECTION_RSI_BEARISH_THRESHOLD"
-                            placeholder="50">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Alert on Skip</label>
-                    <select id="DIRECTION_ALERT_ON_SKIP" name="DIRECTION_ALERT_ON_SKIP">
-                        <option value="true">✅ Send alert when skipping misaligned signal</option>
-                        <option value="false">❌ No alert</option>
-                    </select>
-                </div>
+                </form>
             </div>
 
-            <div class="button-group">
-                <button type="button" class="btn-secondary" onclick="loadFiltersConfig()">Reset</button>
-                <button type="submit" class="btn-primary">Save Filter Settings</button>
-            </div>
-    </div>
-    </form>
-    </div>
+            <!-- Advanced Section -->
+            <div id="advanced-section" class="section">
+                <div class="content-header">
+                    <h2>⚙️ Advanced Settings</h2>
+                    <p>Configure advanced parameters and system settings</p>
+                </div>
 
-    <!-- Alerts Section -->
-    <div id="alerts-section" class="section">
-        <div class="content-header">
-            <h2>📢 Telegram Alerts</h2>
-            <p>Configure alert notifications</p>
-        </div>
-
-        <form id="alerts-form">
-            <div class="card">
-                <h3><span class="icon">🤖</span> Alert Bot Configuration</h3>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>Alert Bot Token</label>
-                        <input type="text" id="ALERT_BOT_TOKEN" name="ALERT_BOT_TOKEN">
+                <form id="advanced-form">
+                    <div class="card">
+                        <h3><span class="icon">⏱️</span> Trade Frequency</h3>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Max Trades Per Hour</label>
+                                <input type="number" id="MAX_TRADES_PER_HOUR" name="MAX_TRADES_PER_HOUR">
+                            </div>
+                            <div class="form-group">
+                                <label>Trade Cooldown (seconds)</label>
+                                <input type="number" id="TRADE_COOLDOWN_SECONDS" name="TRADE_COOLDOWN_SECONDS">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Deduplication Window (seconds)</label>
+                            <input type="number" id="DEDUPLICATION_WINDOW" name="DEDUPLICATION_WINDOW">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Alert Chat ID</label>
-                        <input type="text" id="ALERT_CHAT_ID" name="ALERT_CHAT_ID">
+
+                    <div class="card">
+                        <h3><span class="icon">🌐</span> System Settings</h3>
+                        <div class="form-group">
+                            <label>Web Dashboard Port</label>
+                            <input type="number" id="WEB_PORT" name="WEB_PORT">
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Alert Level</label>
-                    <select id="ALERT_LEVEL" name="ALERT_LEVEL">
-                        <option value="ALL">All Alerts</option>
-                        <option value="ERRORS">Errors Only</option>
-                        <option value="NONE">No Alerts</option>
-                    </select>
-                </div>
-            </div>
 
-            <div class="button-group">
-                <button type="button" class="btn-secondary" onclick="loadAlertsConfig()">Reset</button>
-                <button type="submit" class="btn-primary">Save Alert Settings</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Advanced Section -->
-    <div id="advanced-section" class="section">
-        <div class="content-header">
-            <h2>⚙️ Advanced Settings</h2>
-            <p>Configure advanced parameters and system settings</p>
-        </div>
-
-        <form id="advanced-form">
-            <div class="card">
-                <h3><span class="icon">⏱️</span> Trade Frequency</h3>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>Max Trades Per Hour</label>
-                        <input type="number" id="MAX_TRADES_PER_HOUR" name="MAX_TRADES_PER_HOUR">
+                    <div class="button-group">
+                        <button type="button" class="btn-secondary" onclick="loadAdvancedConfig()">Reset</button>
+                        <button type="submit" class="btn-primary">Save Advanced Settings</button>
                     </div>
-                    <div class="form-group">
-                        <label>Trade Cooldown (seconds)</label>
-                        <input type="number" id="TRADE_COOLDOWN_SECONDS" name="TRADE_COOLDOWN_SECONDS">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Deduplication Window (seconds)</label>
-                    <input type="number" id="DEDUPLICATION_WINDOW" name="DEDUPLICATION_WINDOW">
-                </div>
+                </form>
             </div>
-
-            <div class="card">
-                <h3><span class="icon">🌐</span> System Settings</h3>
-                <div class="form-group">
-                    <label>Web Dashboard Port</label>
-                    <input type="number" id="WEB_PORT" name="WEB_PORT">
-                </div>
-            </div>
-
-            <div class="button-group">
-                <button type="button" class="btn-secondary" onclick="loadAdvancedConfig()">Reset</button>
-                <button type="submit" class="btn-primary">Save Advanced Settings</button>
-            </div>
-        </form>
-    </div>
-    </main>
+        </main>
     </div>
 
     <!-- Mobile Menu Toggle -->
