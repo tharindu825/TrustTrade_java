@@ -37,9 +37,10 @@ class DashboardTransport extends winston.Transport {
  * Web Dashboard Class
  */
 class WebDashboard {
-    constructor(trader, config) {
+    constructor(trader, config, positionTracker) {
         this.trader = trader;
         this.config = config;
+        this.positionTracker = positionTracker;
         this.port = parseInt(config.WEB_PORT || 5000);
         this.app = express();
         this.server = null;
@@ -211,6 +212,56 @@ class WebDashboard {
                 logger.error(`Error closing position: ${error.message} `);
                 res.status(500).json({ error: error.message });
             }
+        });
+
+
+
+        // API endpoint to emergency close all positions
+        this.app.post('/api/emergency-close-all', async (req, res) => {
+            if (!this.positionTracker) {
+                return res.status(503).json({ error: 'Position tracker not initialized' });
+            }
+            try {
+                const result = await this.positionTracker.emergencyCloseAll();
+                res.json(result);
+            } catch (error) {
+                logger.error(`Error in emergency close all: ${error.message}`);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // API endpoint to retry safety orders
+        this.app.post('/api/retry-safety-orders', async (req, res) => {
+            const { symbol } = req.body;
+            if (!this.positionTracker) {
+                return res.status(503).json({ error: 'Position tracker not initialized' });
+            }
+            try {
+                // Trigger checkPositions which handles retries/unprotected
+                await this.positionTracker.checkPositions();
+
+                // Get updated status
+                const unprotected = this.positionTracker.getUnprotectedPositions();
+                const stillUnprotected = unprotected.find(p => p.symbol === symbol);
+
+                if (stillUnprotected) {
+                    res.json({ success: false, message: 'Retried but position is still unprotected. Check logs.' });
+                } else {
+                    res.json({ success: true, message: 'Safety orders check triggered. Please verify status.' });
+                }
+
+            } catch (error) {
+                logger.error(`Error retrying safety orders: ${error.message}`);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // API to get unprotected positions status
+        this.app.get('/api/positions/unprotected', (req, res) => {
+            if (!this.positionTracker) {
+                return res.json([]);
+            }
+            res.json(this.positionTracker.getUnprotectedPositions());
         });
 
         // Logs API - Get log history

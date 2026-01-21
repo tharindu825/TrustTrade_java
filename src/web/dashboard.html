@@ -366,7 +366,10 @@
 
 <body>
     <div class="header">
-        <h1>🚀 TrustTrade Dashboard</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>🚀 TrustTrade Dashboard</h1>
+            <button class="btn btn-danger" onclick="emergencyCloseAll()">🚨 Emergency Close All</button>
+        </div>
     </div>
 
     <div class="main-container">
@@ -476,6 +479,44 @@
             }
         }
 
+        async function retrySafetyOrders(symbol) {
+            try {
+                const res = await fetch('/api/retry-safety-orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol })
+                });
+                const data = await res.json();
+                alert(data.message);
+                loadData();
+            } catch (error) {
+                alert('Error retrying safety orders: ' + error.message);
+            }
+        }
+
+        async function emergencyCloseAll() {
+            if (!confirm('🚨 WARNING: This will close ALL open positions at market price and cancel ALL orders.\n\nAre you sure you want to proceed?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/emergency-close-all', {
+                    method: 'POST'
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert(`Emergency Close Result:\nClosed: ${data.closed}\nErrors: ${data.results.filter(r => !r.success).length}`);
+                    loadData();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error executing emergency close: ' + error.message);
+            }
+        }
+
         function initProfitChart() {
             const ctx = document.getElementById('profitChart').getContext('2d');
             profitChart = new Chart(ctx, {
@@ -546,7 +587,6 @@
                     throw new Error(`Account API failed: ${accountRes.status}`);
                 }
                 const accountData = await accountRes.json();
-                console.log('Account data:', accountData);
                 document.getElementById('balance').textContent = accountData.balance.toFixed(2);
 
                 const posRes = await fetch('/api/positions');
@@ -554,7 +594,6 @@
                     throw new Error(`Positions API failed: ${posRes.status}`);
                 }
                 const posData = await posRes.json();
-                console.log('Positions data:', posData);
 
                 const positionsCount = posData.positions.length;
                 document.getElementById('positions-count').textContent = positionsCount;
@@ -591,25 +630,54 @@
 
                 updateProfitChart(posData.positions);
 
+                // Fetch unprotected positions first
+                let unprotectedSet = new Set();
+                try {
+                    const unprotRes = await fetch('/api/positions/unprotected');
+                    if (unprotRes.ok) {
+                        const unprotData = await unprotRes.json();
+                        unprotData.forEach(p => unprotectedSet.add(p.symbol));
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch unprotected positions', e);
+                }
+
                 if (posData.positions.length > 0) {
-                    let html = '<table><tr><th>Symbol</th><th>Side</th><th>Amount</th><th>Entry Price</th><th>Mark Price</th><th>PNL</th><th>Leverage</th><th>Action</th></tr>';
+                    let html = '<table><tr><th>Symbol</th><th>Side</th><th>Amount</th><th>Entry Price</th><th>Mark Price</th><th>PNL</th><th>Leverage</th><th>Status</th><th>Action</th></tr>';
+
                     posData.positions.forEach(pos => {
                         const pnl = parseFloat(pos.unrealizedProfit);
                         const pnlClass = pnl >= 0 ? 'badge-profit' : 'badge-loss';
                         const side = parseFloat(pos.positionAmt) > 0 ? 'LONG' : 'SHORT';
                         const sideClass = side === 'LONG' ? 'badge-long' : 'badge-short';
 
-                        html += `<tr>
+                        const isUnprotected = unprotectedSet.has(pos.symbol);
+                        const statusHtml = isUnprotected
+                            ? `<span class="badge badge-short" style="background:#fed7d7; color:#c53030">⚠️ Unprotected</span>`
+                            : `<span class="badge" style="background:#c6f6d5; color:#22543d">✅ Protected</span>`;
+
+                        const retryBtn = isUnprotected
+                            ? `<button class="btn" style="background:#ecc94b; color:#744210; margin-right:5px; font-size:0.8em; padding:4px 8px;" onclick="retrySafetyOrders('${pos.symbol}')">🔄 Retry Safety</button>`
+                            : '';
+
+                        html += `
+                        <tr>
                             <td><strong>${pos.symbol}</strong></td>
                             <td><span class="badge ${sideClass}">${side}</span></td>
                             <td>${Math.abs(parseFloat(pos.positionAmt))}</td>
-                            <td>${parseFloat(pos.entryPrice).toFixed(4)}</td>
-                            <td>${parseFloat(pos.markPrice).toFixed(4)}</td>
-                            <td><span class="badge ${pnlClass}">${pnl.toFixed(2)} USDT</span></td>
+                            <td>$${parseFloat(pos.entryPrice).toFixed(4)}</td>
+                            <td>$${parseFloat(pos.markPrice).toFixed(4)}</td>
+                            <td><span class="badge ${pnlClass}">$${pnl.toFixed(2)}</span></td>
                             <td>${pos.leverage}x</td>
-                            <td><button class="btn btn-danger" onclick="closePosition('${pos.symbol}')">Close</button></td>
-                        </tr>`;
+                            <td>${statusHtml}</td>
+                            <td>
+                                ${retryBtn}
+                                <button class="btn btn-danger" style="font-size:0.8em; padding:4px 8px;" onclick="closePosition('${pos.symbol}')">Close</button>
+                            </td>
+                        </tr>
+                        `;
                     });
+
                     html += '</table>';
                     document.getElementById('positions-table').innerHTML = html;
                 } else {
@@ -621,21 +689,19 @@
                     throw new Error(`Orders API failed: ${ordersRes.status}`);
                 }
                 const ordersData = await ordersRes.json();
-                console.log('Orders data:', ordersData);
-
                 document.getElementById('orders-count').textContent = ordersData.orders.length;
 
                 if (ordersData.orders.length > 0) {
                     let html = '<table><tr><th>Symbol</th><th>Type</th><th>Side</th><th>Price</th><th>Quantity</th><th>Status</th></tr>';
                     ordersData.orders.forEach(order => {
                         html += `<tr>
-                            <td><strong>${order.symbol}</strong></td>
-                            <td>${order.type}</td>
-                            <td>${order.side}</td>
-                            <td>${parseFloat(order.price || order.stopPrice || 0).toFixed(4)}</td>
-                            <td>${order.origQty}</td>
-                            <td><span class="badge badge-long">${order.status}</span></td>
-                        </tr>`;
+                                    <td><strong>${order.symbol}</strong></td>
+                                    <td>${order.type}</td>
+                                    <td>${order.side}</td>
+                                    <td>${parseFloat(order.price || order.stopPrice || 0).toFixed(4)}</td>
+                                    <td>${order.origQty}</td>
+                                    <td><span class="badge badge-long">${order.status}</span></td>
+                                </tr>`;
                     });
                     html += '</table>';
                     document.getElementById('orders-table').innerHTML = html;
