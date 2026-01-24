@@ -10,15 +10,16 @@ class TradingStrategy {
 
         // Risk management
         this.minBalance = parseFloat(config.MIN_BALANCE || 1.0);
-        this.maxOpenPositions = parseInt(config.MAX_OPEN_POSITIONS || 1);
-        this.slPercentage = parseFloat(config.SL_PERCENTAGE || 0.07);
-        this.tp1Roi = parseFloat(config.TP1_ROI || 0.5);
-        this.tp2Roi = parseFloat(config.TP2_ROI || 2.0);
-        this.minRiskReward = parseFloat(config.MIN_RISK_REWARD || 1.5);
+        this.maxOpenPositions = parseInt(config.MAX_OPEN_POSITIONS || 3);
+        this.riskPerTrade = parseFloat(config.RISK_PER_TRADE || 2.0);
+        this.tpPercentage = parseFloat(config.TP_PERCENTAGE || 3.0);
+        this.slPercentage = parseFloat(config.SL_PERCENTAGE || 1.5);
 
-        // Filters
-        this.enableRiskRewardFilter = config.ENABLE_RISK_REWARD_FILTER === 'true';
-        this.enableVolatilityFilter = config.ENABLE_VOLATILITY_FILTER === 'true';
+        // Margin type configuration
+        this.marginType = (config.MARGIN_TYPE || 'CROSSED').toUpperCase();
+
+        // Direction validation
+        this.enableDirectionValidation = config.ENABLE_DIRECTION_VALIDATION === 'true';
 
         // State
         this.activeSignals = new Map();
@@ -72,6 +73,25 @@ class TradingStrategy {
                 return false;
             }
 
+            // Direction validation (if enabled)
+            if (this.enableDirectionValidation) {
+                const currentDirection = await this.trader.getPositionDirection(signal.coin);
+                if (currentDirection && currentDirection !== signal.direction) {
+                    logger.warn(`⚠️ Direction validation failed for ${signal.coin}: Current=${currentDirection}, Signal=${signal.direction}. Skipping trade.`);
+                    if (this.alerts) {
+                        await this.alerts.sendAlert(
+                            `⚠️ *Direction Validation Failed*\n\n` +
+                            `Symbol: ${signal.coin}\n` +
+                            `Current Position: ${currentDirection}\n` +
+                            `New Signal: ${signal.direction}\n\n` +
+                            `Trade rejected to prevent conflicting positions.`,
+                            'WARNING'
+                        );
+                    }
+                    return false;
+                }
+            }
+
             // Check position limits
             const openPositionsCount = await this.trader.getOpenPositionsCount();
             if (openPositionsCount >= this.maxOpenPositions) {
@@ -115,7 +135,7 @@ class TradingStrategy {
 
             // Set leverage and margin type
             await this.trader.setLeverage(coin, finalLeverage);
-            await this.trader.setMarginType(coin, 'ISOLATED');
+            await this.trader.setMarginType(coin, this.marginType);
 
             // Calculate position size
             const quantity = await this.trader.calculatePositionSize(coin, entryPrice, finalLeverage);

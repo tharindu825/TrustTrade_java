@@ -590,9 +590,31 @@
                         <h3><span class="icon">📊</span> Position Management</h3>
                         <div class="grid-2">
                             <div class="form-group">
-                                <label>Max Open Positions</label>
-                                <input type="number" id="MAX_OPEN_POSITIONS" name="MAX_OPEN_POSITIONS" min="1">
+                                <label for="MAX_OPEN_POSITIONS">Max Open Positions</label>
+                                <input type="number" id="MAX_OPEN_POSITIONS" name="MAX_OPEN_POSITIONS" min="1" max="10"
+                                    placeholder="3">
                             </div>
+
+                            <div class="form-group">
+                                <label for="MARGIN_TYPE">Margin Type</label>
+                                <select id="MARGIN_TYPE" name="MARGIN_TYPE">
+                                    <option value="CROSSED">CROSSED (Recommended)</option>
+                                    <option value="ISOLATED">ISOLATED</option>
+                                </select>
+                                <small>CROSSED uses entire account balance as margin. ISOLATED limits risk to position
+                                    margin only.</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ENABLE_DIRECTION_VALIDATION">Enable Direction Validation</label>
+                                <select id="ENABLE_DIRECTION_VALIDATION" name="ENABLE_DIRECTION_VALIDATION">
+                                    <option value="true">Enabled (Recommended)</option>
+                                    <option value="false">Disabled</option>
+                                </select>
+                                <small>When enabled, prevents opening trades that conflict with existing position
+                                    direction. Helps avoid losses from opposite signals.</small>
+                            </div>
+
                             <div class="form-group">
                                 <label>Max Open Entry Orders</label>
                                 <input type="number" id="MAX_OPEN_ENTRY_ORDERS" name="MAX_OPEN_ENTRY_ORDERS" min="1">

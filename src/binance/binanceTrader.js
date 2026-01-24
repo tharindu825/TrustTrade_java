@@ -192,6 +192,27 @@ class BinanceTrader {
     }
 
     /**
+     * Get position direction for a symbol
+     */
+    async getPositionDirection(symbol) {
+        try {
+            await this.throttleApiRequest();
+            const positions = await this.monitoringClient.futuresPositionRisk();
+            const position = positions.find(pos => pos.symbol === symbol);
+
+            if (!position) return null;
+
+            const positionAmt = parseFloat(position.positionAmt);
+            if (positionAmt === 0) return null;
+
+            return positionAmt > 0 ? 'LONG' : 'SHORT';
+        } catch (error) {
+            logger.error(`Error getting position direction for ${symbol}: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
      * Get account balance
      */
     async getAccountBalance() {
