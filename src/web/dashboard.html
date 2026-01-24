@@ -311,28 +311,109 @@
             }
 
             .content {
-                padding: 20px 15px;
+                padding: 15px 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .header {
+                padding: 12px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.3em;
+            }
+
+            .header>div {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch !important;
+            }
+
+            .header>div>div {
+                display: flex;
+                gap: 8px;
+                width: 100%;
+            }
+
+            .header .btn {
+                flex: 1;
+                font-size: 0.85em;
+                padding: 10px 12px;
+            }
+
+            .card {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .card-header h2 {
+                font-size: 1.2em;
+            }
+
+            table {
+                font-size: 0.8em;
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            th,
+            td {
+                padding: 8px 6px;
+            }
+
+            .stat-card {
+                padding: 18px;
+            }
+
+            .stat-value {
+                font-size: 1.6em;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.1em;
             }
 
             .stats-grid {
                 grid-template-columns: 1fr;
             }
 
-            .header {
-                padding: 15px 20px;
+            .stat-card {
+                padding: 15px;
             }
 
-            .header h1 {
+            .stat-value {
                 font-size: 1.4em;
             }
 
             table {
-                font-size: 0.85em;
+                font-size: 0.75em;
             }
 
             th,
             td {
-                padding: 10px 8px;
+                padding: 6px 4px;
+            }
+
+            .btn {
+                font-size: 0.8em;
+                padding: 8px 10px;
             }
         }
 
