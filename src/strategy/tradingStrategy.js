@@ -1,4 +1,5 @@
 import logger from '../utils/logger.js';
+import DirectionValidator from '../utils/directionValidator.js';
 
 /**
  * Trading Strategy - Handles signal processing and trade execution logic
@@ -20,6 +21,9 @@ class TradingStrategy {
 
         // Direction validation
         this.enableDirectionValidation = config.ENABLE_DIRECTION_VALIDATION === 'true';
+
+        // Direction validator (advanced - trend-based validation)
+        this.directionValidator = new DirectionValidator(binanceTrader.monitoringClient, config);
 
         // State
         this.activeSignals = new Map();
@@ -90,6 +94,27 @@ class TradingStrategy {
                     }
                     return false;
                 }
+            }
+
+            // Advanced direction validation (trend-based filter)
+            const trendValidation = await this.directionValidator.validateSignalDirection(signal.coin, signal.direction);
+            if (!trendValidation.valid) {
+                logger.warn(`⚠️ Trend validation failed for ${signal.coin}: ${trendValidation.reason}`);
+                if (this.directionValidator.alertOnSkip && this.alerts) {
+                    await this.alerts.sendAlert(
+                        `⚠️ *Trend Validation Failed*\n\n` +
+                        `Symbol: ${signal.coin}\n` +
+                        `Signal: ${signal.direction}\n` +
+                        `Reason: ${trendValidation.reason}\n\n` +
+                        `Indicators:\n` +
+                        `RSI: ${trendValidation.indicators.rsi}\n` +
+                        `EMA: ${trendValidation.indicators.ema}\n` +
+                        `MACD: ${trendValidation.indicators.macd}\n` +
+                        `Price: ${trendValidation.indicators.currentPrice}`,
+                        'WARNING'
+                    );
+                }
+                return false;
             }
 
             // Check position limits
