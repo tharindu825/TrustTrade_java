@@ -305,6 +305,20 @@ class TradingStrategy {
                         await this.alerts.sendTradeAlert(signalData.signal, 'ENTRY FILLED');
                     }
 
+                    // Log trade open
+                    if (this.tradeLogger) {
+                        signalData.tradeId = this.tradeLogger.logTradeOpen({
+                            symbol,
+                            direction: signalData.signal.direction,
+                            entryPrice: signalData.entryPrice,
+                            quantity: signalData.quantity,
+                            leverage: signalData.leverage,
+                            tp1Price: signalData.tp1Price,
+                            tp2Price: signalData.tp2Price,
+                            slPrice: signalData.slPrice
+                        });
+                    }
+
                     // Track position
                     if (this.positionTracker) {
                         this.positionTracker.trackPosition(symbol, signalData);
