@@ -114,8 +114,8 @@ class PositionTracker {
         const timeSinceTracked = Date.now() - tracked.trackedAt;
         const timeSinceLastRetry = tracked.lastRetryAt ? Date.now() - tracked.lastRetryAt : Infinity;
 
-        // Give it 60 seconds before first retry
-        if (timeSinceTracked < 60000) {
+        // Give it 20 seconds before first retry (reduced from 60s for faster response)
+        if (timeSinceTracked < 20000) {
             return;
         }
 

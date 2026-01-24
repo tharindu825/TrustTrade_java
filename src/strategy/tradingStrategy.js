@@ -338,81 +338,143 @@ class TradingStrategy {
      * Place protective TP/SL orders after entry is filled
      */
     async placeProtectiveOrders(symbol, signalData) {
+        const { quantity, tp1Price, tp2Price, slPrice, exitSide } = signalData;
+
+        // Track results for each order
+        const results = {
+            tp1: { success: false, orderId: null, error: null },
+            tp2: { success: false, orderId: null, error: null },
+            sl: { success: false, orderId: null, error: null }
+        };
+
         try {
-            const { quantity, tp1Price, tp2Price, slPrice, exitSide } = signalData;
-
-            // Format total quantity first to ensure we work with valid numbers
+            // Format total quantity
             const totalQty = this.trader.formatQuantity(symbol, quantity);
-
-            // Split quantity for TP1 and TP2 (50% each)
-            // Calculate TP1 and format it
             const tp1Raw = totalQty * 0.5;
             const tp1Quantity = this.trader.formatQuantity(symbol, tp1Raw);
-
-            // Calculate TP2 as remaining quantity to ensure sum matches total exactly
-            // Using toFixed(8) to avoid floating point artifacts before formatting
             const tp2Raw = parseFloat((totalQty - tp1Quantity).toFixed(8));
             const tp2Quantity = this.trader.formatQuantity(symbol, tp2Raw);
 
-            logger.info(`Quantity Split: Total=${totalQty} -> TP1=${tp1Quantity}, TP2=${tp2Quantity}`);
+            logger.info(`Placing protective orders for ${symbol}: Total=${totalQty}, TP1=${tp1Quantity}, TP2=${tp2Quantity}`);
 
-            // Place TP1 order
-            const tp1Order = await this.trader.placeTakeProfit(
-                symbol,
-                exitSide,
-                tp1Quantity,
-                tp1Price
-            );
+            // Place TP1 (individual error handling)
+            try {
+                const tp1Order = await this.trader.placeTakeProfit(symbol, exitSide, tp1Quantity, tp1Price);
+                results.tp1 = { success: true, orderId: tp1Order.orderId, error: null };
+                signalData.tp1OrderId = tp1Order.orderId;
+                logger.info(`✅ TP1 placed: ${tp1Order.orderId}`);
+            } catch (error) {
+                results.tp1.error = error.message;
+                logger.error(`❌ Failed to place TP1 for ${symbol}: ${error.message}`);
+            }
 
-            // Place TP2 order only if quantity > 0
-            let tp2Order = null;
+            // Place TP2 (continue even if TP1 failed)
             if (tp2Quantity > 0) {
-                tp2Order = await this.trader.placeTakeProfit(
-                    symbol,
-                    exitSide,
-                    tp2Quantity,
-                    tp2Price
-                );
+                try {
+                    const tp2Order = await this.trader.placeTakeProfit(symbol, exitSide, tp2Quantity, tp2Price);
+                    results.tp2 = { success: true, orderId: tp2Order.orderId, error: null };
+                    signalData.tp2OrderId = tp2Order.orderId;
+                    logger.info(`✅ TP2 placed: ${tp2Order.orderId}`);
+                } catch (error) {
+                    results.tp2.error = error.message;
+                    logger.error(`❌ Failed to place TP2 for ${symbol}: ${error.message}`);
+                }
             } else {
                 logger.info(`Skipping TP2 (quantity 0)`);
-                tp2Order = { orderId: 'SKIPPED' };
+                results.tp2 = { success: true, orderId: 'SKIPPED', error: null };
+                signalData.tp2OrderId = 'SKIPPED';
             }
 
-            // Place SL order
-            const slOrder = await this.trader.placeStopLoss(
-                symbol,
-                exitSide,
-                quantity,
-                slPrice
-            );
-
-            logger.info(`✅ All protective orders placed successfully for ${symbol}`);
-            logger.info(`TP1: ${tp1Order.orderId}, TP2: ${tp2Order.orderId}, SL: ${slOrder.orderId}`);
-
-            // Send Alert
-            if (this.alerts) {
-                await this.alerts.sendAlert(
-                    `🛡️ *Protective Orders Placed*\n\n` +
-                    `Symbol: ${symbol}\n` +
-                    `TP1: ${tp1Price}\n` +
-                    `TP2: ${tp2Price}\n` +
-                    `SL: ${slPrice}`,
-                    'info'
-                );
+            // Place SL (CRITICAL)
+            try {
+                const slOrder = await this.trader.placeStopLoss(symbol, exitSide, quantity, slPrice);
+                results.sl = { success: true, orderId: slOrder.orderId, error: null };
+                signalData.slOrderId = slOrder.orderId;
+                logger.info(`✅ SL placed: ${slOrder.orderId}`);
+            } catch (error) {
+                results.sl.error = error.message;
+                logger.error(`❌ CRITICAL: Failed to place SL for ${symbol}: ${error.message}`);
             }
 
-            // Mark position as protected in tracker
-            if (this.positionTracker) {
+            // Immediate SL retry if failed
+            if (!results.sl.success) {
+                logger.warn(`🔄 Attempting immediate SL retry for ${symbol}...`);
+                await this.retrySLPlacement(symbol, signalData, results, quantity, exitSide, slPrice);
+            }
+
+            // Mark as protected if SL succeeded
+            if (results.sl.success && this.positionTracker) {
                 this.positionTracker.markProtected(symbol);
+                if (!results.tp1.success || !results.tp2.success) {
+                    const failed = [];
+                    if (!results.tp1.success) failed.push('TP1');
+                    if (!results.tp2.success) failed.push('TP2');
+                    logger.warn(`⚠️ Position ${symbol} partially protected. Missing: ${failed.join(', ')}`);
+                }
             }
 
-            // Update signal data
-            signalData.tp1OrderId = tp1Order.orderId;
-            signalData.tp2OrderId = tp2Order.orderId;
-            signalData.slOrderId = slOrder.orderId;
+            // Send alerts
+            if (results.tp1.success && results.tp2.success && results.sl.success) {
+                if (this.alerts) {
+                    await this.alerts.sendAlert(
+                        `🛡️ *Protective Orders Placed*\n\n` +
+                        `Symbol: ${symbol}\n` +
+                        `TP1: ${tp1Price}\n` +
+                        `TP2: ${tp2Price}\n` +
+                        `SL: ${slPrice}`,
+                        'INFO'
+                    );
+                }
+            } else {
+                const failed = [];
+                if (!results.tp1.success) failed.push('TP1');
+                if (!results.tp2.success) failed.push('TP2');
+                if (!results.sl.success) failed.push('SL');
+                if (this.alerts) {
+                    await this.alerts.sendAlert(
+                        `⚠️ *Partial Protection*\n\n` +
+                        `Symbol: ${symbol}\n` +
+                        `Failed: ${failed.join(', ')}`,
+                        'WARNING'
+                    );
+                }
+            }
 
         } catch (error) {
-            logger.error(`Error placing protective orders for ${symbol}: ${error.message}`, error);
+            logger.error(`Error in placeProtectiveOrders for ${symbol}: ${error.message}`, error);
+        }
+    }
+
+    async retrySLPlacement(symbol, signalData, results, quantity, exitSide, slPrice, maxRetries = 3) {
+        for (let i = 0; i < maxRetries; i++) {
+            const delay = 1000 * Math.pow(2, i);
+            logger.info(`Waiting ${delay}ms before SL retry ${i + 1}/${maxRetries}...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            try {
+                const slOrder = await this.trader.placeStopLoss(symbol, exitSide, quantity, slPrice);
+                results.sl = { success: true, orderId: slOrder.orderId, error: null };
+                signalData.slOrderId = slOrder.orderId;
+                logger.info(`✅ SL placed on retry ${i + 1}: ${slOrder.orderId}`);
+                if (this.alerts) {
+                    await this.alerts.sendAlert(
+                        `✅ *SL Placed on Retry*\n\nSymbol: ${symbol}\nRetry: ${i + 1}/${maxRetries}`,
+                        'SUCCESS'
+                    );
+                }
+                return;
+            } catch (error) {
+                results.sl.error = error.message;
+                logger.error(`❌ SL retry ${i + 1} failed: ${error.message}`);
+            }
+        }
+
+        logger.error(`🚨 CRITICAL: All ${maxRetries} SL retries failed for ${symbol}`);
+        if (this.alerts) {
+            await this.alerts.sendAlert(
+                `🚨 *CRITICAL: SL Failed*\n\nSymbol: ${symbol}\nAll retries failed!\nPosition UNPROTECTED!`,
+                'CRITICAL'
+            );
         }
     }
 
