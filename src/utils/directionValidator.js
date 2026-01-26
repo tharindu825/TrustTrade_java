@@ -16,8 +16,9 @@ class DirectionValidator {
         this.rsiBullishThreshold = parseFloat(config.DIRECTION_RSI_BULLISH_THRESHOLD || 50);
         this.rsiBearishThreshold = parseFloat(config.DIRECTION_RSI_BEARISH_THRESHOLD || 50);
         this.alertOnSkip = config.DIRECTION_ALERT_ON_SKIP === 'true';
+        this.minIndicators = parseInt(config.DIRECTION_MIN_INDICATORS || 1); // Default: 1 of 3
 
-        logger.info(`Direction Validator initialized: ${this.enabled ? 'Enabled' : 'Disabled'}`);
+        logger.info(`Direction Validator initialized: ${this.enabled ? 'Enabled' : 'Disabled'}, Min Indicators: ${this.minIndicators}/3`);
     }
 
     /**
@@ -32,13 +33,15 @@ class DirectionValidator {
             // Fetch klines data
             const klines = await this.fetchKlines(symbol, '15m', this.klinesLimit);
             if (!klines || klines.length < this.klinesLimit) {
-                logger.warn(`Insufficient klines data for ${symbol}, skipping validation`);
+                logger.warn(`Insufficient klines data for ${symbol} (got ${klines?.length || 0}/${this.klinesLimit}), allowing trade`);
                 return { valid: true, reason: 'Insufficient data' };
             }
 
             // Extract close prices
             const closes = klines.map(k => parseFloat(k[4]));
             const currentPrice = closes[closes.length - 1];
+
+            logger.debug(`${symbol}: Calculating indicators from ${closes.length} candles, current price: ${currentPrice}`);
 
             // Calculate indicators
             const rsi = this.calculateRSI(closes, this.rsiPeriod);
@@ -48,12 +51,12 @@ class DirectionValidator {
             // Determine trend
             const trend = this.determineTrend(rsi, ema, macd, currentPrice, signalDirection);
 
-            logger.info(`Direction validation for ${symbol} (${signalDirection}): RSI=${rsi.toFixed(2)}, EMA=${ema.toFixed(4)}, MACD=${macd.histogram.toFixed(4)}, Valid=${trend.valid}`);
+            logger.info(`Direction validation for ${symbol} (${signalDirection}): RSI=${rsi.toFixed(2)}, EMA=${ema.toFixed(4)}, MACD=${macd.histogram.toFixed(4)}, Price=${currentPrice.toFixed(4)}, Valid=${trend.valid}`);
 
             return trend;
 
         } catch (error) {
-            logger.error(`Error validating direction for ${symbol}: ${error.message}`);
+            logger.error(`Error validating direction for ${symbol}: ${error.message}`, error);
             return { valid: true, reason: 'Validation error, allowing trade' };
         }
     }
@@ -68,6 +71,13 @@ class DirectionValidator {
                 interval,
                 limit
             });
+
+            if (!klines || klines.length === 0) {
+                logger.warn(`No klines data returned for ${symbol}`);
+                return null;
+            }
+
+            logger.debug(`Fetched ${klines.length} klines for ${symbol}`);
             return klines;
         } catch (error) {
             logger.error(`Error fetching klines for ${symbol}: ${error.message}`);
@@ -128,7 +138,7 @@ class DirectionValidator {
         }
 
         const multiplier = 2 / (period + 1);
-        
+
         // Start with SMA
         let ema = closes.slice(0, period).reduce((sum, val) => sum + val, 0) / period;
 
@@ -171,9 +181,9 @@ class DirectionValidator {
             macd: { value: macd.histogram, bullish: false, bearish: false }
         };
 
-        // RSI analysis
-        indicators.rsi.bullish = rsi > this.rsiBullishThreshold;
-        indicators.rsi.bearish = rsi < this.rsiBearishThreshold;
+        // RSI analysis (use >= and <= to avoid neutral zone)
+        indicators.rsi.bullish = rsi >= this.rsiBullishThreshold;
+        indicators.rsi.bearish = rsi <= this.rsiBearishThreshold;
 
         // EMA analysis
         indicators.ema.bullish = currentPrice > ema;
@@ -196,20 +206,24 @@ class DirectionValidator {
             indicators.macd.bearish
         ].filter(Boolean).length;
 
+        // Log indicator states for debugging
+        logger.debug(`${signalDirection} signal - RSI: ${rsi.toFixed(2)} (B:${indicators.rsi.bullish}, Be:${indicators.rsi.bearish}), EMA: ${ema.toFixed(4)} vs Price: ${currentPrice.toFixed(4)} (B:${indicators.ema.bullish}, Be:${indicators.ema.bearish}), MACD: ${macd.histogram.toFixed(4)} (B:${indicators.macd.bullish}, Be:${indicators.macd.bearish})`);
+
         // Validate signal direction
         let valid = false;
         let reason = '';
 
+
         if (signalDirection === 'LONG') {
-            valid = bullishCount >= 2; // At least 2 of 3 indicators bullish
-            reason = valid 
-                ? `Bullish trend confirmed (${bullishCount}/3 indicators)`
-                : `Bearish/Neutral trend (${bullishCount}/3 bullish, ${bearishCount}/3 bearish)`;
-        } else if (signalDirection === 'SHORT') {
-            valid = bearishCount >= 2; // At least 2 of 3 indicators bearish
+            valid = bullishCount >= this.minIndicators; // Configurable threshold
             reason = valid
-                ? `Bearish trend confirmed (${bearishCount}/3 indicators)`
-                : `Bullish/Neutral trend (${bullishCount}/3 bullish, ${bearishCount}/3 bearish)`;
+                ? `Bullish trend confirmed (${bullishCount}/3 indicators, min: ${this.minIndicators})`
+                : `Insufficient bullish indicators (${bullishCount}/3, need: ${this.minIndicators})`;
+        } else if (signalDirection === 'SHORT') {
+            valid = bearishCount >= this.minIndicators; // Configurable threshold
+            reason = valid
+                ? `Bearish trend confirmed (${bearishCount}/3 indicators, min: ${this.minIndicators})`
+                : `Insufficient bearish indicators (${bearishCount}/3, need: ${this.minIndicators})`;
         }
 
         return {

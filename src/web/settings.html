@@ -798,6 +798,17 @@
                             </div>
                         </div>
                         <div class="form-group">
+                            <label>Minimum Indicators Required</label>
+                            <select id="DIRECTION_MIN_INDICATORS" name="DIRECTION_MIN_INDICATORS">
+                                <option value="1">1 of 3 (Less Strict - Recommended)</option>
+                                <option value="2">2 of 3 (Moderate)</option>
+                                <option value="3">3 of 3 (Very Strict)</option>
+                            </select>
+                            <small style="color: #718096; display: block; margin-top: 5px;">
+                                How many indicators must agree with signal direction. Lower = more trades allowed.
+                            </small>
+                        </div>
+                        <div class="form-group">
                             <label>Alert on Skip</label>
                             <select id="DIRECTION_ALERT_ON_SKIP" name="DIRECTION_ALERT_ON_SKIP">
                                 <option value="true">✅ Send alert when skipping misaligned signal</option>
