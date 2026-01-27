@@ -21,11 +21,34 @@ class DashboardTransport extends winston.Transport {
         });
 
         if (this.callback) {
-            // Extract clean message if possible, or use the formatted one
-            // info.message is usually the raw message
-            // info[Symbol.for('message')] is the formatted message
             const level = info.level.toUpperCase();
-            const message = info.message;
+            let message = info.message;
+
+            // Check for stack trace (errors)
+            if (info.stack) {
+                message = `${message}\n${info.stack}`;
+            }
+
+            // Check for additional metadata (excluding standard Winston properties)
+            const standardProps = ['level', 'message', 'splat', 'timestamp', 'stack'];
+            const metadata = {};
+            let hasMetadata = false;
+
+            for (const key in info) {
+                if (!standardProps.includes(key)) {
+                    metadata[key] = info[key];
+                    hasMetadata = true;
+                }
+            }
+
+            if (hasMetadata) {
+                try {
+                    message = `${message} ${JSON.stringify(metadata)}`;
+                } catch (e) {
+                    // Circular reference or other error, ignore metadata
+                }
+            }
+
             this.callback(level, message);
         }
 

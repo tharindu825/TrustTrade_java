@@ -103,7 +103,16 @@ class PositionTracker {
             }
 
         } catch (error) {
-            logger.error(`Error checking positions: ${error.message}`, error);
+            // Handle specific network errors
+            if (error.code === 'ETIMEDOUT' || error.code === 'ECONNRESET' || error.message.includes('fetch failed')) {
+                logger.warn(`Network error checking positions: ${error.message} (${error.code || 'UNKNOWN'})`);
+            } else if (error.message.includes('recvWindow')) {
+                logger.warn(`Timestamp error checking positions: ${error.message}`);
+            } else {
+                // For other errors, log full details but ensure it is not empty
+                const errorDetails = error.stack || error.message || JSON.stringify(error);
+                logger.error(`Error checking positions: ${error.message}`, { error: errorDetails });
+            }
         }
     }
 

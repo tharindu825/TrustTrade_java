@@ -47,14 +47,16 @@ class BinanceTrader {
             this.tradingClient = Binance({
                 apiKey: this.config.TRADING_API_KEY,
                 apiSecret: this.config.TRADING_SECRET_KEY,
-                futures: true
+                futures: true,
+                recvWindow: 60000 // Increase receive window to 60s to prevent timestamp errors
             });
 
             // Monitoring client
             this.monitoringClient = Binance({
                 apiKey: this.config.MONITORING_API_KEY,
                 apiSecret: this.config.MONITORING_SECRET_KEY,
-                futures: true
+                futures: true,
+                recvWindow: 60000 // Increase receive window to 60s
             });
 
             // Test connection
