@@ -38,7 +38,7 @@ class DirectionValidator {
             }
 
             // Extract close prices
-            const closes = klines.map(k => parseFloat(k[4]));
+            const closes = klines.map(k => parseFloat(k.close || k[4])); // Handle both Object and Array format
             const currentPrice = closes[closes.length - 1];
 
             logger.debug(`${symbol}: Calculating indicators from ${closes.length} candles, current price: ${currentPrice}`);
@@ -51,7 +51,7 @@ class DirectionValidator {
             // Determine trend
             const trend = this.determineTrend(rsi, ema, macd, currentPrice, signalDirection);
 
-            logger.info(`Direction validation for ${symbol} (${signalDirection}): RSI=${rsi.toFixed(2)}, EMA=${ema.toFixed(4)}, MACD=${macd.histogram.toFixed(4)}, Price=${currentPrice.toFixed(4)}, Valid=${trend.valid}`);
+            logger.info(`Direction validation for ${symbol} (${signalDirection}): RSI=${rsi.toFixed(2)}, EMA=${ema.toFixed(4)}, MACD=${macd.histogram.toFixed(4)} (L:${macd.macdLine.toFixed(4)} S:${macd.signalLine.toFixed(4)}), Price=${currentPrice.toFixed(4)}, Valid=${trend.valid}`);
 
             return trend;
 
@@ -132,45 +132,94 @@ class DirectionValidator {
     /**
      * Calculate EMA (Exponential Moving Average)
      */
-    calculateEMA(closes, period = 20) {
-        if (closes.length < period) {
-            return closes[closes.length - 1]; // Return current price if insufficient data
-        }
+    /**
+     * Calculate EMA Array (Returns array of EMA values matching input length)
+     * For indices < period-1, values are null/undefined or incomplete.
+     * Index period-1 is the first valid EMA (SMA of first 'period' values).
+     */
+    calculateEMAArray(closes, period = 20) {
+        if (closes.length < period) return [];
 
         const multiplier = 2 / (period + 1);
+        const emaArray = new Array(closes.length).fill(null);
 
-        // Start with SMA
-        let ema = closes.slice(0, period).reduce((sum, val) => sum + val, 0) / period;
+        // Initial SMA
+        let sum = 0;
+        for (let i = 0; i < period; i++) {
+            sum += closes[i];
+        }
+        let ema = sum / period;
+        emaArray[period - 1] = ema;
 
-        // Calculate EMA
+        // Calculate subsequent EMAs
         for (let i = period; i < closes.length; i++) {
             ema = (closes[i] - ema) * multiplier + ema;
+            emaArray[i] = ema;
         }
 
-        return ema;
+        return emaArray;
+    }
+
+    /**
+     * Calculate EMA (Exponential Moving Average) - Returns single latest value
+     */
+    calculateEMA(closes, period = 20) {
+        const emaArray = this.calculateEMAArray(closes, period);
+        return emaArray.length > 0 ? emaArray[emaArray.length - 1] : null;
     }
 
     /**
      * Calculate MACD (Moving Average Convergence Divergence)
+     * Standard Formula:
+     * - MACD Line = 12-Period EMA - 26-Period EMA
+     * - Signal Line = 9-Period EMA of MACD Line
+     * - Histogram = MACD Line - Signal Line
      */
     calculateMACD(closes, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
-        const emaFast = this.calculateEMA(closes, fastPeriod);
-        const emaSlow = this.calculateEMA(closes, slowPeriod);
-        const macdLine = emaFast - emaSlow;
+        // 1. Calculate Fast and Slow EMA Arrays
+        const emaFastArray = this.calculateEMAArray(closes, fastPeriod);
+        const emaSlowArray = this.calculateEMAArray(closes, slowPeriod);
 
-        // Calculate signal line (EMA of MACD line)
-        // For simplicity, we'll use a basic approximation
-        const signalLine = macdLine * 0.9; // Simplified signal line
+        if (!emaFastArray.length || !emaSlowArray.length) {
+            return { macdLine: 0, signalLine: 0, histogram: 0 };
+        }
 
-        const histogram = macdLine - signalLine;
+        // 2. Derive MACD Line Array
+        const macdLineArray = [];
+        // We need aligned data. The slow EMA starts later (at index slowPeriod-1).
+        // Before that, we can't calculate MACD.
+        for (let i = 0; i < closes.length; i++) {
+            if (emaFastArray[i] !== null && emaSlowArray[i] !== null) {
+                macdLineArray.push(emaFastArray[i] - emaSlowArray[i]);
+            } else {
+                macdLineArray.push(null); // Preserve index alignment
+            }
+        }
+
+        // 3. Calculate Signal Line (EMA of MACD Line)
+        // We need to filter out nulls to calculate EMA, but we need to be careful about alignment.
+        // The standard way is to calculate EMA on the valid MACD series.
+        const validMacdValues = macdLineArray.filter(val => val !== null);
+
+        if (validMacdValues.length < signalPeriod) {
+            // Not enough data for Signal Line
+            const lastMacd = validMacdValues.length > 0 ? validMacdValues[validMacdValues.length - 1] : 0;
+            return { macdLine: lastMacd, signalLine: 0, histogram: 0 };
+        }
+
+        const signalLineArray = this.calculateEMAArray(validMacdValues, signalPeriod);
+
+        // 4. Get Final Values
+        const currentMacdLine = validMacdValues[validMacdValues.length - 1];
+        const currentSignalLine = signalLineArray[signalLineArray.length - 1];
+        const currentHistogram = currentMacdLine - currentSignalLine;
 
         return {
-            macdLine,
-            signalLine,
-            histogram
+            macdLine: currentMacdLine,
+            signalLine: currentSignalLine,
+            histogram: currentHistogram
         };
     }
-
     /**
      * Determine if signal direction aligns with trend
      */
@@ -207,7 +256,7 @@ class DirectionValidator {
         ].filter(Boolean).length;
 
         // Log indicator states for debugging
-        logger.debug(`${signalDirection} signal - RSI: ${rsi.toFixed(2)} (B:${indicators.rsi.bullish}, Be:${indicators.rsi.bearish}), EMA: ${ema.toFixed(4)} vs Price: ${currentPrice.toFixed(4)} (B:${indicators.ema.bullish}, Be:${indicators.ema.bearish}), MACD: ${macd.histogram.toFixed(4)} (B:${indicators.macd.bullish}, Be:${indicators.macd.bearish})`);
+        logger.debug(`${signalDirection} signal - RSI: ${rsi.toFixed(2)} (B: ${indicators.rsi.bullish}, Be: ${indicators.rsi.bearish}), EMA: ${ema.toFixed(4)} vs Price: ${currentPrice.toFixed(4)} (B: ${indicators.ema.bullish}, Be: ${indicators.ema.bearish}), MACD: ${macd.histogram.toFixed(4)} (L:${macd.macdLine.toFixed(4)} S:${macd.signalLine.toFixed(4)}) (B: ${indicators.macd.bullish}, Be: ${indicators.macd.bearish})`);
 
         // Validate signal direction
         let valid = false;
@@ -217,13 +266,13 @@ class DirectionValidator {
         if (signalDirection === 'LONG') {
             valid = bullishCount >= this.minIndicators; // Configurable threshold
             reason = valid
-                ? `Bullish trend confirmed (${bullishCount}/3 indicators, min: ${this.minIndicators})`
-                : `Insufficient bullish indicators (${bullishCount}/3, need: ${this.minIndicators})`;
+                ? `Bullish trend confirmed(${bullishCount} / 3 indicators, min: ${this.minIndicators})`
+                : `Insufficient bullish indicators(${bullishCount} / 3, need: ${this.minIndicators})`;
         } else if (signalDirection === 'SHORT') {
             valid = bearishCount >= this.minIndicators; // Configurable threshold
             reason = valid
-                ? `Bearish trend confirmed (${bearishCount}/3 indicators, min: ${this.minIndicators})`
-                : `Insufficient bearish indicators (${bearishCount}/3, need: ${this.minIndicators})`;
+                ? `Bearish trend confirmed(${bearishCount} / 3 indicators, min: ${this.minIndicators})`
+                : `Insufficient bearish indicators(${bearishCount} / 3, need: ${this.minIndicators})`;
         }
 
         return {
