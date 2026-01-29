@@ -22,6 +22,7 @@ class DashboardTransport extends winston.Transport {
 
         if (this.callback) {
             const level = info.level.toUpperCase();
+            const timestamp = info.timestamp || new Date().toISOString().replace('T', ' ').substring(0, 19);
             let message = info.message;
 
             // Check for stack trace (errors)
@@ -49,7 +50,8 @@ class DashboardTransport extends winston.Transport {
                 }
             }
 
-            this.callback(level, message);
+            // Send log with timestamp prepended
+            this.callback(level, `${timestamp} - ${message}`);
         }
 
         callback();

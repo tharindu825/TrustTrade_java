@@ -29,7 +29,7 @@ const logger = winston.createLogger({
         }),
         // File transport with rotation
         new DailyRotateFile({
-            filename: path.join(__dirname, 'logs', 'app-%DATE%.log'),
+            filename: path.join(process.cwd(), 'logs', 'app-%DATE%.log'),
             datePattern: 'YYYY-MM-DD',
             maxSize: '5m',
             maxFiles: '5d',

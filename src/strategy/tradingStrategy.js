@@ -551,7 +551,11 @@ class TradingStrategy {
 
                 // Check TP1 Status
                 if (!signalData.tp1Filled && signalData.tp1OrderId) {
-                    const tp1Status = await this.trader.tradingClient.futuresOrder({ symbol, orderId: signalData.tp1OrderId });
+                    const tp1Status = await this.trader.tradingClient.futuresOrder({
+                        symbol,
+                        orderId: signalData.tp1OrderId,
+                        side: signalData.exitSide
+                    });
                     if (tp1Status.status === 'FILLED') {
                         logger.info(`✅ TP1 Hit for ${symbol}`);
                         signalData.tp1Filled = true;
@@ -569,7 +573,11 @@ class TradingStrategy {
 
                 // Check TP2 Status
                 if (signalData.tp2OrderId && signalData.tp2OrderId !== 'SKIPPED') {
-                    const tp2Status = await this.trader.tradingClient.futuresOrder({ symbol, orderId: signalData.tp2OrderId });
+                    const tp2Status = await this.trader.tradingClient.futuresOrder({
+                        symbol,
+                        orderId: signalData.tp2OrderId,
+                        side: signalData.exitSide
+                    });
                     if (tp2Status.status === 'FILLED') {
                         logger.info(`✅ TP2 Hit for ${symbol}`);
 
@@ -606,8 +614,18 @@ class TradingStrategy {
         try {
             logger.info(`Moving SL to breakeven for ${symbol}...`);
 
-            // Cancel existing SL
-            await this.trader.cancelOrder(symbol, signalData.slOrderId);
+            // Cancel existing SL with error handling
+            try {
+                await this.trader.cancelOrder(symbol, signalData.slOrderId);
+                logger.info(`Cancelled old SL order ${signalData.slOrderId} for ${symbol}`);
+            } catch (cancelError) {
+                // If order already filled/cancelled, log but continue
+                if (cancelError.code === -2011) {
+                    logger.warn(`Old SL order ${signalData.slOrderId} already inactive, proceeding...`);
+                } else {
+                    throw cancelError; // Re-throw if it's a different error
+                }
+            }
 
             // Place new SL at Entry Price
             // We need current position size? Or original - TP1? 

@@ -128,13 +128,22 @@ class TradeLogger {
         trade.closeTime = new Date().toISOString();
         trade.status = 'CLOSED';
 
-        // Calculate PNL
+        // Calculate PNL (Binance Futures formula)
+        // Price change per contract
         const priceChange = trade.direction === 'LONG'
             ? (trade.closePrice - trade.entryPrice)
             : (trade.entryPrice - trade.closePrice);
 
-        trade.pnl = priceChange * trade.quantity * trade.leverage;
-        trade.pnlPercent = (priceChange / trade.entryPrice) * 100 * trade.leverage;
+        // Absolute PNL in USDT (leverage does NOT multiply this)
+        trade.pnl = priceChange * trade.quantity;
+
+        // PNL % relative to position notional value
+        const positionValue = trade.entryPrice * trade.quantity;
+        trade.pnlPercent = (trade.pnl / positionValue) * 100;
+
+        // ROI % relative to margin used (this is where leverage matters)
+        const marginUsed = positionValue / trade.leverage;
+        trade.roiPercent = (trade.pnl / marginUsed) * 100;
 
         // Add closing remark if provided
         if (closeData.remark) {
