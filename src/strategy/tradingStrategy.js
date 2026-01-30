@@ -401,6 +401,7 @@ class TradingStrategy {
                 const tp1Order = await this.trader.placeTakeProfit(symbol, exitSide, tp1Quantity, tp1Price);
                 results.tp1 = { success: true, orderId: tp1Order.orderId, error: null };
                 signalData.tp1OrderId = tp1Order.orderId;
+                signalData.tp1Quantity = tp1Quantity;  // Store for monitoring
                 logger.info(`✅ TP1 placed: ${tp1Order.orderId}`);
             } catch (error) {
                 results.tp1.error = error.message;
@@ -413,6 +414,7 @@ class TradingStrategy {
                     const tp2Order = await this.trader.placeTakeProfit(symbol, exitSide, tp2Quantity, tp2Price);
                     results.tp2 = { success: true, orderId: tp2Order.orderId, error: null };
                     signalData.tp2OrderId = tp2Order.orderId;
+                    signalData.tp2Quantity = tp2Quantity;  // Store for monitoring
                     logger.info(`✅ TP2 placed: ${tp2Order.orderId}`);
                 } catch (error) {
                     results.tp2.error = error.message;
@@ -422,6 +424,7 @@ class TradingStrategy {
                 logger.info(`Skipping TP2 (quantity 0)`);
                 results.tp2 = { success: true, orderId: 'SKIPPED', error: null };
                 signalData.tp2OrderId = 'SKIPPED';
+                signalData.tp2Quantity = 0;
             }
 
             // Place SL (CRITICAL)
@@ -554,7 +557,8 @@ class TradingStrategy {
                     const tp1Status = await this.trader.tradingClient.futuresOrder({
                         symbol,
                         orderId: signalData.tp1OrderId,
-                        side: signalData.exitSide
+                        side: signalData.exitSide,
+                        origQty: signalData.tp1Quantity  // Required by Binance API
                     });
                     if (tp1Status.status === 'FILLED') {
                         logger.info(`✅ TP1 Hit for ${symbol}`);
@@ -576,7 +580,8 @@ class TradingStrategy {
                     const tp2Status = await this.trader.tradingClient.futuresOrder({
                         symbol,
                         orderId: signalData.tp2OrderId,
-                        side: signalData.exitSide
+                        side: signalData.exitSide,
+                        origQty: signalData.tp2Quantity  // Required by Binance API
                     });
                     if (tp2Status.status === 'FILLED') {
                         logger.info(`✅ TP2 Hit for ${symbol}`);
