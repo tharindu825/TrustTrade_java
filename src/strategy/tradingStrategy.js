@@ -529,6 +529,9 @@ class TradingStrategy {
 
         const intervalId = setInterval(async () => {
             try {
+                // Fetch current position first
+                const currentPosition = await this.trader.getPosition(symbol);
+
                 // If position closed externally, stop monitoring
                 const hasPosition = await this.trader.hasSymbolPosition(symbol);
                 if (!hasPosition) {

@@ -76,6 +76,7 @@ class TrustTradeBot {
 
             // Initialize trade logger
             this.tradeLogger = new TradeLogger();
+            this.tradeLogger.setTrader(this.binanceTrader);
 
             // Initialize position tracker
             this.positionTracker = new PositionTracker(this.binanceTrader, this.alerts);

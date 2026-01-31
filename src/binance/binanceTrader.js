@@ -89,15 +89,24 @@ class BinanceTrader {
                     .map(s => s.symbol)
             );
 
-            // Cache symbol precision
+            // Cache symbol precision and filters
             for (const symbol of this.exchangeInfo.symbols) {
                 if (symbol.status === 'TRADING') {
                     const pricePrecision = symbol.pricePrecision;
                     const quantityPrecision = symbol.quantityPrecision;
+                    
+                    // Get tick size and step size from filters
+                    const priceFilter = symbol.filters.find(f => f.filterType === 'PRICE_FILTER');
+                    const lotSizeFilter = symbol.filters.find(f => f.filterType === 'LOT_SIZE');
+                    
+                    const tickSize = priceFilter ? parseFloat(priceFilter.tickSize) : null;
+                    const stepSize = lotSizeFilter ? parseFloat(lotSizeFilter.stepSize) : null;
 
                     this.symbolPrecision.set(symbol.symbol, {
                         price: pricePrecision,
-                        quantity: quantityPrecision
+                        quantity: quantityPrecision,
+                        tickSize: tickSize,
+                        stepSize: stepSize
                     });
                 }
             }
@@ -122,7 +131,7 @@ class BinanceTrader {
     }
 
     /**
-     * Format price according to symbol precision
+     * Format price according to symbol precision and tick size
      */
     formatPrice(symbol, price) {
         const precision = this.symbolPrecision.get(symbol);
@@ -130,11 +139,18 @@ class BinanceTrader {
             logger.warn(`No precision data for ${symbol}, using default`);
             return parseFloat(price.toFixed(4));
         }
+        
+        // If tick size is available, round to nearest tick
+        if (precision.tickSize) {
+            const rounded = Math.round(price / precision.tickSize) * precision.tickSize;
+            return parseFloat(rounded.toFixed(precision.price));
+        }
+        
         return parseFloat(price.toFixed(precision.price));
     }
 
     /**
-     * Format quantity according to symbol precision
+     * Format quantity according to symbol precision and step size
      */
     formatQuantity(symbol, quantity) {
         const precision = this.symbolPrecision.get(symbol);
@@ -142,6 +158,13 @@ class BinanceTrader {
             logger.warn(`No precision data for ${symbol}, using default`);
             return parseFloat(quantity.toFixed(3));
         }
+        
+        // If step size is available, round to nearest step
+        if (precision.stepSize) {
+            const rounded = Math.round(quantity / precision.stepSize) * precision.stepSize;
+            return parseFloat(rounded.toFixed(precision.quantity));
+        }
+        
         return parseFloat(quantity.toFixed(precision.quantity));
     }
 
@@ -210,6 +233,27 @@ class BinanceTrader {
             return positionAmt > 0 ? 'LONG' : 'SHORT';
         } catch (error) {
             logger.error(`Error getting position direction for ${symbol}: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Get position details for a symbol
+     */
+    async getPosition(symbol) {
+        try {
+            await this.throttleApiRequest();
+            const positions = await this.monitoringClient.futuresPositionRisk();
+            const position = positions.find(pos => pos.symbol === symbol);
+
+            if (!position) return null;
+
+            const positionAmt = parseFloat(position.positionAmt);
+            if (positionAmt === 0) return null;
+
+            return position;
+        } catch (error) {
+            logger.error(`Error getting position for ${symbol}: ${error.message}`);
             return null;
         }
     }

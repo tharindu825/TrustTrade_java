@@ -1,0 +1,22 @@
+{
+  "trades": [
+    {
+      "id": "trade_1769868379873_i4f4d8wzv",
+      "symbol": "VVVUSDT",
+      "direction": "SHORT",
+      "entryPrice": 2.295,
+      "entryTime": "2026-01-31T14:06:19.873Z",
+      "quantity": 4.36,
+      "leverage": 20,
+      "tp1Price": 2.2491,
+      "tp2Price": 2.1803,
+      "slPrice": 2.37146667,
+      "closePrice": null,
+      "closeTime": null,
+      "pnl": null,
+      "pnlPercent": null,
+      "status": "OPEN",
+      "remarks": []
+    }
+  ]
+}

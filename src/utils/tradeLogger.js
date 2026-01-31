@@ -13,8 +13,17 @@ class TradeLogger {
     constructor() {
         this.tradesFile = path.join(process.cwd(), 'data', 'trades.json');
         this.trades = [];
+        this.trader = null; // Will be set via setTrader()
         this.ensureDataDirectory();
         this.loadTrades();
+    }
+
+    /**
+     * Set trader instance (for fetching realized PNL)
+     */
+    setTrader(trader) {
+        this.trader = trader;
+        logger.info('Trader instance linked to trade logger');
     }
 
     /**
