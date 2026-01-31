@@ -115,9 +115,9 @@ class TradeLogger {
     }
 
     /**
-     * Log trade closing
+     * Log trade close with actual Binance PNL
      */
-    logTradeClose(symbol, closeData) {
+    async logTradeClose(symbol, closeData) {
         const trade = this.trades.find(t => t.symbol === symbol && t.status === 'OPEN');
         if (!trade) {
             logger.warn(`No open trade found for ${symbol} to close`);
@@ -128,14 +128,28 @@ class TradeLogger {
         trade.closeTime = new Date().toISOString();
         trade.status = 'CLOSED';
 
-        // Calculate PNL (Binance Futures formula)
-        // Price change per contract
-        const priceChange = trade.direction === 'LONG'
-            ? (trade.closePrice - trade.entryPrice)
-            : (trade.entryPrice - trade.closePrice);
+        // Try to fetch actual realized PNL from Binance
+        const entryTime = new Date(trade.entryTime).getTime();
+        const closeTime = new Date(trade.closeTime).getTime();
 
-        // Absolute PNL in USDT (leverage does NOT multiply this)
-        trade.pnl = priceChange * trade.quantity;
+        let realizedPnl = null;
+        if (this.trader) {
+            realizedPnl = await this.trader.fetchRealizedPnl(symbol, entryTime, closeTime);
+        }
+
+        if (realizedPnl !== null) {
+            // Use actual Binance PNL (includes all fees)
+            trade.pnl = realizedPnl;
+            logger.info(`Using actual Binance PNL for ${symbol}: ${realizedPnl} USDT`);
+        } else {
+            // Fallback to calculated PNL (without fees)
+            const priceChange = trade.direction === 'LONG'
+                ? (trade.closePrice - trade.entryPrice)
+                : (trade.entryPrice - trade.closePrice);
+
+            trade.pnl = priceChange * trade.quantity;
+            logger.warn(`Using calculated PNL for ${symbol}: ${trade.pnl} USDT (Binance fetch failed)`);
+        }
 
         // PNL % relative to position notional value
         const positionValue = trade.entryPrice * trade.quantity;

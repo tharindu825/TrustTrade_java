@@ -306,6 +306,76 @@ class BinanceTrader {
     }
 
     /**
+     * Emergency close single position
+     */
+    async emergencyCloseSinglePosition(symbol) {
+        try {
+            const position = await this.getPosition(symbol);
+            if (!position || parseFloat(position.positionAmt) === 0) {
+                logger.warn(`No open position found for ${symbol}`);
+                return { success: false, message: 'No position found' };
+            }
+
+            const quantity = Math.abs(parseFloat(position.positionAmt));
+            const side = parseFloat(position.positionAmt) > 0 ? 'SELL' : 'BUY';
+
+            await this.tradingClient.futuresOrder({
+                symbol,
+                side,
+                type: 'MARKET',
+                quantity: this.formatQuantity(symbol, quantity),
+                reduceOnly: true
+            });
+
+            logger.info(`✅ Emergency closed position for ${symbol}`);
+            return { success: true, message: `Closed ${quantity} ${symbol}` };
+
+        } catch (error) {
+            logger.error(`Failed to emergency close ${symbol}: ${error.message}`, error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * Fetch actual realized PNL from Binance for a specific trade
+     * This includes all fees (trading fees, funding fees, etc.)
+     * @param {string} symbol - Trading symbol
+     * @param {number} startTime - Start timestamp in milliseconds
+     * @param {number} endTime - End timestamp in milliseconds
+     * @returns {Promise<number>} - Actual realized PNL in USDT
+     */
+    async fetchRealizedPnl(symbol, startTime, endTime) {
+        try {
+            await this.throttleApiRequest();
+
+            // Fetch income history for REALIZED_PNL
+            const income = await this.monitoringClient.futuresIncome({
+                symbol,
+                incomeType: 'REALIZED_PNL',
+                startTime: startTime,
+                endTime: endTime,
+                limit: 100
+            });
+
+            // Sum all realized PNL entries for this time period
+            let totalPnl = 0;
+            if (income && income.length > 0) {
+                totalPnl = income.reduce((sum, entry) => sum + parseFloat(entry.income), 0);
+                logger.info(`Fetched realized PNL for ${symbol}: ${totalPnl} USDT (${income.length} entries)`);
+            } else {
+                logger.warn(`No realized PNL data found for ${symbol} in time range`);
+            }
+
+            return totalPnl;
+
+        } catch (error) {
+            logger.error(`Failed to fetch realized PNL for ${symbol}: ${error.message}`);
+            // Return null to indicate fetch failed, caller can fall back to calculated PNL
+            return null;
+        }
+    }
+
+    /**
      * Place limit order
      */
     async placeLimitOrder(symbol, side, quantity, price) {

@@ -533,16 +533,9 @@ class TradingStrategy {
                 const hasPosition = await this.trader.hasSymbolPosition(symbol);
                 if (!hasPosition) {
                     logger.info(`Position ${symbol} no longer exists. Stopping monitor.`);
-
-                    // Log trade close (SL hit or manual close)
                     if (this.tradeLogger) {
-                        // Try to get last price from position history or use entry price as fallback
-                        const positions = await this.trader.monitoringClient.futuresPositionRisk();
-                        const closedPos = positions.find(p => p.symbol === symbol);
-                        const closePrice = closedPos ? parseFloat(closedPos.markPrice) : signalData.entryPrice;
-
-                        this.tradeLogger.logTradeClose(symbol, {
-                            closePrice,
+                        await this.tradeLogger.logTradeClose(symbol, {
+                            closePrice: currentPosition ? parseFloat(currentPosition.markPrice) : signalData.entryPrice,
                             remark: signalData.tp1Filled ? 'Partial TP - Position Closed' : 'SL Hit or Manual Close'
                         });
                     }
