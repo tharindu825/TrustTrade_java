@@ -800,8 +800,8 @@
                         <div class="form-group">
                             <label>Minimum Indicators Required</label>
                             <select id="DIRECTION_MIN_INDICATORS" name="DIRECTION_MIN_INDICATORS">
-                                <option value="1">1 of 3 (Less Strict - Recommended)</option>
-                                <option value="2">2 of 3 (Moderate)</option>
+                                <option value="1">1 of 3 (Less Strict)</option>
+                                <option value="2">2 of 3 (Moderate - Recommended)</option>
                                 <option value="3">3 of 3 (Very Strict)</option>
                             </select>
                             <small style="color: #718096; display: block; margin-top: 5px;">
@@ -814,6 +814,66 @@
                                 <option value="true">✅ Send alert when skipping misaligned signal</option>
                                 <option value="false">❌ No alert</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="icon">📈</span> ADX Filter (Trend Strength)</h3>
+                        <div class="auth-info">
+                            💡 <strong>Note:</strong> ADX (Average Directional Index) measures trend strength. This filter prevents trading in choppy/sideways markets where trends are weak.
+                        </div>
+                        <div class="form-group">
+                            <label>Enable ADX Filter</label>
+                            <select id="ENABLE_ADX_FILTER" name="ENABLE_ADX_FILTER">
+                                <option value="true">✅ Enabled (Recommended)</option>
+                                <option value="false">❌ Disabled</option>
+                            </select>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>ADX Period</label>
+                                <input type="number" id="ADX_PERIOD" name="ADX_PERIOD" placeholder="14">
+                                <small style="color: #718096; display: block; margin-top: 5px;">
+                                    Number of candles to calculate ADX. Default: 14
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label>Minimum ADX Value</label>
+                                <input type="number" step="0.1" id="MIN_ADX" name="MIN_ADX" placeholder="20">
+                                <small style="color: #718096; display: block; margin-top: 5px;">
+                                    Minimum trend strength required. 20-25 = moderate, 25+ = strong trend
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="icon">📊</span> Volume Confirmation</h3>
+                        <div class="auth-info">
+                            💡 <strong>Note:</strong> Volume confirmation requires higher-than-average trading volume to enter a position. This helps confirm signal strength and avoid low-liquidity traps.
+                        </div>
+                        <div class="form-group">
+                            <label>Enable Volume Confirmation</label>
+                            <select id="ENABLE_VOLUME_CONFIRMATION" name="ENABLE_VOLUME_CONFIRMATION">
+                                <option value="true">✅ Enabled (Recommended)</option>
+                                <option value="false">❌ Disabled</option>
+                            </select>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Volume Period</label>
+                                <input type="number" id="VOLUME_PERIOD" name="VOLUME_PERIOD" placeholder="20">
+                                <small style="color: #718096; display: block; margin-top: 5px;">
+                                    Number of candles to calculate average volume. Default: 20
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label>Minimum Volume Multiplier</label>
+                                <input type="number" step="0.1" id="MIN_VOLUME_MULTIPLIER" name="MIN_VOLUME_MULTIPLIER" placeholder="1.2">
+                                <small style="color: #718096; display: block; margin-top: 5px;">
+                                    Current volume must be this many times the average. 1.2 = 20% above average
+                                </small>
+                            </div>
                         </div>
                     </div>
 

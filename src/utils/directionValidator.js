@@ -6,6 +6,7 @@ import logger from './logger.js';
 class DirectionValidator {
     constructor(binanceClient, config) {
         this.client = binanceClient;
+        this.config = config; // Store config for dynamic updates
         this.enabled = config.ENABLE_DIRECTION_VALIDATION_FILTER === 'true';
         this.rsiPeriod = parseInt(config.DIRECTION_RSI_PERIOD || 14);
         this.emaPeriod = parseInt(config.DIRECTION_EMA_PERIOD || 20);
@@ -16,9 +17,19 @@ class DirectionValidator {
         this.rsiBullishThreshold = parseFloat(config.DIRECTION_RSI_BULLISH_THRESHOLD || 50);
         this.rsiBearishThreshold = parseFloat(config.DIRECTION_RSI_BEARISH_THRESHOLD || 50);
         this.alertOnSkip = config.DIRECTION_ALERT_ON_SKIP === 'true';
-        this.minIndicators = parseInt(config.DIRECTION_MIN_INDICATORS || 1); // Default: 1 of 3
+        this.minIndicators = parseInt(config.DIRECTION_MIN_INDICATORS || 1);
+        
+        // ADX Filter
+        this.enableAdxFilter = config.ENABLE_ADX_FILTER === 'true';
+        this.adxPeriod = parseInt(config.ADX_PERIOD || 14);
+        this.minAdx = parseFloat(config.MIN_ADX || 20);
+        
+        // Volume Confirmation
+        this.enableVolumeConfirmation = config.ENABLE_VOLUME_CONFIRMATION === 'true';
+        this.volumePeriod = parseInt(config.VOLUME_PERIOD || 20);
+        this.minVolumeMultiplier = parseFloat(config.MIN_VOLUME_MULTIPLIER || 1.2);
 
-        logger.info(`Direction Validator initialized: ${this.enabled ? 'Enabled' : 'Disabled'}, Min Indicators: ${this.minIndicators}/3`);
+        logger.info(`Direction Validator initialized: ${this.enabled ? 'Enabled' : 'Disabled'}, Min Indicators: ${this.minIndicators}/3, ADX: ${this.enableAdxFilter ? 'Enabled' : 'Disabled'}, Volume: ${this.enableVolumeConfirmation ? 'Enabled' : 'Disabled'}`);
     }
 
     /**
@@ -37,9 +48,13 @@ class DirectionValidator {
                 return { valid: true, reason: 'Insufficient data' };
             }
 
-            // Extract close prices
-            const closes = klines.map(k => parseFloat(k.close || k[4])); // Handle both Object and Array format
+            // Extract close prices, highs, lows, and volumes
+            const closes = klines.map(k => parseFloat(k.close || k[4]));
+            const highs = klines.map(k => parseFloat(k.high || k[2]));
+            const lows = klines.map(k => parseFloat(k.low || k[3]));
+            const volumes = klines.map(k => parseFloat(k.volume || k[5]));
             const currentPrice = closes[closes.length - 1];
+            const currentVolume = volumes[volumes.length - 1];
 
             logger.debug(`${symbol}: Calculating indicators from ${closes.length} candles, current price: ${currentPrice}`);
 
@@ -47,11 +62,29 @@ class DirectionValidator {
             const rsi = this.calculateRSI(closes, this.rsiPeriod);
             const ema = this.calculateEMA(closes, this.emaPeriod);
             const macd = this.calculateMACD(closes, this.macdFast, this.macdSlow, this.macdSignal);
+            
+            // Calculate ADX if enabled
+            let adx = null;
+            if (this.enableAdxFilter) {
+                adx = this.calculateADX(highs, lows, closes, this.adxPeriod);
+            }
+            
+            // Calculate volume confirmation if enabled
+            let volumeConfirmed = true;
+            let avgVolume = null;
+            let volumeRatio = null;
+            if (this.enableVolumeConfirmation) {
+                avgVolume = this.calculateAverageVolume(volumes, this.volumePeriod);
+                volumeRatio = currentVolume / avgVolume;
+                volumeConfirmed = volumeRatio >= this.minVolumeMultiplier;
+            }
 
             // Determine trend
-            const trend = this.determineTrend(rsi, ema, macd, currentPrice, signalDirection);
+            const trend = this.determineTrend(rsi, ema, macd, currentPrice, signalDirection, adx, volumeConfirmed, volumeRatio);
 
-            logger.info(`Direction validation for ${symbol} (${signalDirection}): RSI=${rsi.toFixed(2)}, EMA=${ema.toFixed(4)}, MACD=${macd.histogram.toFixed(4)} (L:${macd.macdLine.toFixed(4)} S:${macd.signalLine.toFixed(4)}), Price=${currentPrice.toFixed(4)}, Valid=${trend.valid}`);
+            const adxLog = adx !== null ? `, ADX=${adx.toFixed(2)}` : '';
+            const volumeLog = volumeRatio !== null ? `, Vol=${volumeRatio.toFixed(2)}x` : '';
+            logger.info(`Direction validation for ${symbol} (${signalDirection}): RSI=${rsi.toFixed(2)}, EMA=${ema.toFixed(4)}, MACD=${macd.histogram.toFixed(4)}${adxLog}${volumeLog}, Valid=${trend.valid}`);
 
             return trend;
 
@@ -220,10 +253,83 @@ class DirectionValidator {
             histogram: currentHistogram
         };
     }
+    
+    /**
+     * Calculate ADX (Average Directional Index) - Measures trend strength
+     */
+    calculateADX(highs, lows, closes, period = 14) {
+        if (highs.length < period + 1) {
+            return 25; // Default neutral value
+        }
+
+        const trueRanges = [];
+        const plusDMs = [];
+        const minusDMs = [];
+
+        // Calculate True Range, +DM, -DM
+        for (let i = 1; i < highs.length; i++) {
+            const high = highs[i];
+            const low = lows[i];
+            const prevHigh = highs[i - 1];
+            const prevLow = lows[i - 1];
+            const prevClose = closes[i - 1];
+
+            // True Range
+            const tr = Math.max(
+                high - low,
+                Math.abs(high - prevClose),
+                Math.abs(low - prevClose)
+            );
+            trueRanges.push(tr);
+
+            // Directional Movement
+            const upMove = high - prevHigh;
+            const downMove = prevLow - low;
+
+            const plusDM = (upMove > downMove && upMove > 0) ? upMove : 0;
+            const minusDM = (downMove > upMove && downMove > 0) ? downMove : 0;
+
+            plusDMs.push(plusDM);
+            minusDMs.push(minusDM);
+        }
+
+        // Calculate smoothed averages
+        let atr = trueRanges.slice(0, period).reduce((a, b) => a + b, 0) / period;
+        let plusDI = plusDMs.slice(0, period).reduce((a, b) => a + b, 0) / period;
+        let minusDI = minusDMs.slice(0, period).reduce((a, b) => a + b, 0) / period;
+
+        for (let i = period; i < trueRanges.length; i++) {
+            atr = (atr * (period - 1) + trueRanges[i]) / period;
+            plusDI = (plusDI * (period - 1) + plusDMs[i]) / period;
+            minusDI = (minusDI * (period - 1) + minusDMs[i]) / period;
+        }
+
+        // Calculate DI+ and DI-
+        const plusDIPercent = (plusDI / atr) * 100;
+        const minusDIPercent = (minusDI / atr) * 100;
+
+        // Calculate DX and ADX
+        const dx = Math.abs(plusDIPercent - minusDIPercent) / (plusDIPercent + minusDIPercent) * 100;
+        
+        return dx; // Simplified ADX (using DX as approximation)
+    }
+
+    /**
+     * Calculate average volume over period
+     */
+    calculateAverageVolume(volumes, period = 20) {
+        if (volumes.length < period) {
+            return volumes.reduce((a, b) => a + b, 0) / volumes.length;
+        }
+        
+        const recentVolumes = volumes.slice(-period);
+        return recentVolumes.reduce((a, b) => a + b, 0) / period;
+    }
+    
     /**
      * Determine if signal direction aligns with trend
      */
-    determineTrend(rsi, ema, macd, currentPrice, signalDirection) {
+    determineTrend(rsi, ema, macd, currentPrice, signalDirection, adx = null, volumeConfirmed = true, volumeRatio = null) {
         const indicators = {
             rsi: { value: rsi, bullish: false, bearish: false },
             ema: { value: ema, bullish: false, bearish: false },
@@ -262,17 +368,34 @@ class DirectionValidator {
         let valid = false;
         let reason = '';
 
-
         if (signalDirection === 'LONG') {
-            valid = bullishCount >= this.minIndicators; // Configurable threshold
+            valid = bullishCount >= this.minIndicators;
             reason = valid
-                ? `Bullish trend confirmed(${bullishCount} / 3 indicators, min: ${this.minIndicators})`
-                : `Insufficient bullish indicators(${bullishCount} / 3, need: ${this.minIndicators})`;
+                ? `Bullish trend confirmed (${bullishCount}/3 indicators, min: ${this.minIndicators})`
+                : `Insufficient bullish indicators (${bullishCount}/3, need: ${this.minIndicators})`;
         } else if (signalDirection === 'SHORT') {
-            valid = bearishCount >= this.minIndicators; // Configurable threshold
+            valid = bearishCount >= this.minIndicators;
             reason = valid
-                ? `Bearish trend confirmed(${bearishCount} / 3 indicators, min: ${this.minIndicators})`
-                : `Insufficient bearish indicators(${bearishCount} / 3, need: ${this.minIndicators})`;
+                ? `Bearish trend confirmed (${bearishCount}/3 indicators, min: ${this.minIndicators})`
+                : `Insufficient bearish indicators (${bearishCount}/3, need: ${this.minIndicators})`;
+        }
+        
+        // Apply ADX filter if enabled
+        if (valid && this.enableAdxFilter && adx !== null) {
+            if (adx < this.minAdx) {
+                valid = false;
+                reason = `Weak trend: ADX ${adx.toFixed(2)} < ${this.minAdx} (choppy market)`;
+            } else {
+                reason += `, Strong trend: ADX ${adx.toFixed(2)}`;
+            }
+        }
+        
+        // Apply volume confirmation if enabled
+        if (valid && this.enableVolumeConfirmation && !volumeConfirmed) {
+            valid = false;
+            reason = `Low volume: ${volumeRatio.toFixed(2)}x < ${this.minVolumeMultiplier}x required`;
+        } else if (valid && volumeRatio !== null) {
+            reason += `, Volume: ${volumeRatio.toFixed(2)}x`;
         }
 
         return {
@@ -282,7 +405,9 @@ class DirectionValidator {
                 rsi: rsi.toFixed(2),
                 ema: ema.toFixed(4),
                 macd: macd.histogram.toFixed(4),
-                currentPrice: currentPrice.toFixed(4)
+                currentPrice: currentPrice.toFixed(4),
+                adx: adx !== null ? adx.toFixed(2) : 'N/A',
+                volumeRatio: volumeRatio !== null ? volumeRatio.toFixed(2) : 'N/A'
             }
         };
     }
