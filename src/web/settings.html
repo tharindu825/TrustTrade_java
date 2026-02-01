@@ -914,6 +914,64 @@
                         </div>
                     </div>
 
+                    <div class="card">
+                        <h3><span class="icon">🔔</span> Alert Notifications</h3>
+                        <div class="auth-info">
+                            💡 <strong>Note:</strong> Control which trading events trigger Telegram alerts. All events are always logged to files and GUI.
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Alert on Trend Validation Pass</label>
+                                <select id="ALERT_ON_VALIDATION_PASS" name="ALERT_ON_VALIDATION_PASS">
+                                    <option value="false">❌ Disabled (Recommended - can be noisy)</option>
+                                    <option value="true">✅ Enabled</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Alert on Trend Validation Fail</label>
+                                <select id="ALERT_ON_VALIDATION_FAIL" name="ALERT_ON_VALIDATION_FAIL">
+                                    <option value="true">✅ Enabled (Recommended)</option>
+                                    <option value="false">❌ Disabled</option>
+                                </select>
+                                <small style="color: #718096; display: block; margin-top: 5px;">
+                                    Get notified when signals are skipped due to weak trends
+                                </small>
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Alert on Entry Fill</label>
+                                <select id="ALERT_ON_ENTRY_FILL" name="ALERT_ON_ENTRY_FILL">
+                                    <option value="true">✅ Enabled (Recommended)</option>
+                                    <option value="false">❌ Disabled</option>
+                                </select>
+                                <small style="color: #718096; display: block; margin-top: 5px;">
+                                    Get notified when entry orders are filled
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label>Alert on SL Hit</label>
+                                <select id="ALERT_ON_SL_HIT" name="ALERT_ON_SL_HIT">
+                                    <option value="true">✅ Enabled (Highly Recommended)</option>
+                                    <option value="false">❌ Disabled</option>
+                                </select>
+                                <small style="color: #718096; display: block; margin-top: 5px;">
+                                    🔴 CRITICAL: Get notified immediately when stop loss hits
+                                </small>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Alert on TP Hit</label>
+                            <select id="ALERT_ON_TP_HIT" name="ALERT_ON_TP_HIT">
+                                <option value="true">✅ Enabled (Recommended)</option>
+                                <option value="false">❌ Disabled</option>
+                            </select>
+                            <small style="color: #718096; display: block; margin-top: 5px;">
+                                Get notified when TP1 or TP2 targets are hit
+                            </small>
+                        </div>
+                    </div>
+
                     <div class="button-group">
                         <button type="button" class="btn-secondary" onclick="loadAlertsConfig()">Reset</button>
                         <button type="submit" class="btn-primary">Save Alert Settings</button>

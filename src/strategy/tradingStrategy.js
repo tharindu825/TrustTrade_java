@@ -45,6 +45,10 @@ class TradingStrategy {
      */
     setAlerts(alerts) {
         this.alerts = alerts;
+        // Also pass alerts to direction validator
+        if (this.directionValidator) {
+            this.directionValidator.alerts = alerts;
+        }
         logger.info('Telegram alerts linked to trading strategy');
     }
 
@@ -325,9 +329,17 @@ class TradingStrategy {
                     logger.info(`✅ Limit order filled for ${symbol}! Placing TP/SL orders...`);
                     clearInterval(intervalId);
 
-                    // Send Alert
+                    // Send Entry Fill Alert
                     if (this.alerts) {
-                        await this.alerts.sendTradeAlert(signalData.signal, 'ENTRY FILLED');
+                        const positionValue = signalData.entryPrice * signalData.quantity;
+                        await this.alerts.sendEntryFillAlert(
+                            symbol,
+                            signalData.signal.direction,
+                            signalData.entryPrice,
+                            signalData.quantity,
+                            signalData.leverage,
+                            positionValue
+                        );
                     }
 
                     // Log trade open
@@ -536,11 +548,36 @@ class TradingStrategy {
                 const hasPosition = await this.trader.hasSymbolPosition(symbol);
                 if (!hasPosition) {
                     logger.info(`Position ${symbol} no longer exists. Stopping monitor.`);
+
+                    // Check if this was an SL hit (position closed but not TP filled)
+                    const isSLHit = !signalData.tp2Filled;
+
                     if (this.tradeLogger) {
-                        await this.tradeLogger.logTradeClose(symbol, {
+                        const closeData = await this.tradeLogger.logTradeClose(symbol, {
                             closePrice: currentPosition ? parseFloat(currentPosition.markPrice) : signalData.entryPrice,
                             remark: signalData.tp1Filled ? 'Partial TP - Position Closed' : 'SL Hit or Manual Close'
                         });
+
+                        // Send SL hit alert if applicable
+                        if (isSLHit && this.alerts && closeData) {
+                            const entryTime = new Date(signalData.entryTime);
+                            const closeTime = new Date();
+                            const durationMs = closeTime - entryTime;
+                            const durationMin = Math.floor(durationMs / 60000);
+                            const duration = durationMin < 60
+                                ? `${durationMin} minutes`
+                                : `${Math.floor(durationMin / 60)}h ${durationMin % 60}m`;
+
+                            await this.alerts.sendSLHitAlert(
+                                symbol,
+                                signalData.entryPrice,
+                                closeData.closePrice || signalData.entryPrice,
+                                closeData.pnl || 0,
+                                closeData.pnlPercent || 0,
+                                closeData.roiPercent || 0,
+                                duration
+                            );
+                        }
                     }
 
                     clearInterval(intervalId);
@@ -561,7 +598,18 @@ class TradingStrategy {
                         signalData.tp1Filled = true;
 
                         if (this.alerts) {
-                            await this.alerts.sendAlert(`💰 *TP1 Hit for ${symbol}*\nPrice: ${tp1Status.avgPrice}`, 'SUCCESS');
+                            const profit = (parseFloat(tp1Status.avgPrice) - signalData.entryPrice) * signalData.tp1Quantity * (signalData.direction === 'SHORT' ? -1 : 1);
+                            const profitPercent = ((parseFloat(tp1Status.avgPrice) - signalData.entryPrice) / signalData.entryPrice) * 100 * (signalData.direction === 'SHORT' ? -1 : 1);
+
+                            await this.alerts.sendTPHitAlert(
+                                symbol,
+                                'TP1',
+                                signalData.entryPrice,
+                                parseFloat(tp1Status.avgPrice),
+                                profit,
+                                profitPercent,
+                                50 // 50% position remaining
+                            );
                         }
 
                         // Move SL to Breakeven
@@ -580,10 +628,22 @@ class TradingStrategy {
                         origQty: signalData.tp2Quantity  // Required by Binance API
                     });
                     if (tp2Status.status === 'FILLED') {
-                        logger.info(`✅ TP2 Hit for ${symbol}`);
+                        logger.info(`✅ TP2 Hit for ${symbol} - Trade Complete!`);
+                        signalData.tp2Filled = true;
 
                         if (this.alerts) {
-                            await this.alerts.sendAlert(`💰 *TP2 Hit for ${symbol}*\nPrice: ${tp2Status.avgPrice}\nTrade Complete!`, 'SUCCESS');
+                            const totalProfit = (parseFloat(tp2Status.avgPrice) - signalData.entryPrice) * signalData.totalQuantity * (signalData.direction === 'SHORT' ? -1 : 1);
+                            const profitPercent = ((parseFloat(tp2Status.avgPrice) - signalData.entryPrice) / signalData.entryPrice) * 100 * (signalData.direction === 'SHORT' ? -1 : 1);
+
+                            await this.alerts.sendTPHitAlert(
+                                symbol,
+                                'TP2',
+                                signalData.entryPrice,
+                                parseFloat(tp2Status.avgPrice),
+                                totalProfit,
+                                profitPercent,
+                                null // Trade complete
+                            );
                         }
 
                         // Trade likely done, but wait for position check loop to cleanup

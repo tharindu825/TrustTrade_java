@@ -4,9 +4,10 @@ import logger from './logger.js';
  * Direction Validator - Validates signal direction against trend indicators
  */
 class DirectionValidator {
-    constructor(binanceClient, config) {
+    constructor(binanceClient, config, alerts = null) {
         this.client = binanceClient;
         this.config = config; // Store config for dynamic updates
+        this.alerts = alerts; // Store alerts instance
         this.enabled = config.ENABLE_DIRECTION_VALIDATION_FILTER === 'true';
         this.rsiPeriod = parseInt(config.DIRECTION_RSI_PERIOD || 14);
         this.emaPeriod = parseInt(config.DIRECTION_EMA_PERIOD || 20);
@@ -18,12 +19,12 @@ class DirectionValidator {
         this.rsiBearishThreshold = parseFloat(config.DIRECTION_RSI_BEARISH_THRESHOLD || 50);
         this.alertOnSkip = config.DIRECTION_ALERT_ON_SKIP === 'true';
         this.minIndicators = parseInt(config.DIRECTION_MIN_INDICATORS || 1);
-        
+
         // ADX Filter
         this.enableAdxFilter = config.ENABLE_ADX_FILTER === 'true';
         this.adxPeriod = parseInt(config.ADX_PERIOD || 14);
         this.minAdx = parseFloat(config.MIN_ADX || 20);
-        
+
         // Volume Confirmation
         this.enableVolumeConfirmation = config.ENABLE_VOLUME_CONFIRMATION === 'true';
         this.volumePeriod = parseInt(config.VOLUME_PERIOD || 20);
@@ -62,13 +63,13 @@ class DirectionValidator {
             const rsi = this.calculateRSI(closes, this.rsiPeriod);
             const ema = this.calculateEMA(closes, this.emaPeriod);
             const macd = this.calculateMACD(closes, this.macdFast, this.macdSlow, this.macdSignal);
-            
+
             // Calculate ADX if enabled
             let adx = null;
             if (this.enableAdxFilter) {
                 adx = this.calculateADX(highs, lows, closes, this.adxPeriod);
             }
-            
+
             // Calculate volume confirmation if enabled
             let volumeConfirmed = true;
             let avgVolume = null;
@@ -85,6 +86,17 @@ class DirectionValidator {
             const adxLog = adx !== null ? `, ADX=${adx.toFixed(2)}` : '';
             const volumeLog = volumeRatio !== null ? `, Vol=${volumeRatio.toFixed(2)}x` : '';
             logger.info(`Direction validation for ${symbol} (${signalDirection}): RSI=${rsi.toFixed(2)}, EMA=${ema.toFixed(4)}, MACD=${macd.histogram.toFixed(4)}${adxLog}${volumeLog}, Valid=${trend.valid}`);
+
+            // Send validation alert
+            if (this.alerts) {
+                await this.alerts.sendValidationAlert(
+                    symbol,
+                    signalDirection,
+                    trend.valid,
+                    trend.reason,
+                    trend.indicators
+                );
+            }
 
             return trend;
 
@@ -253,7 +265,7 @@ class DirectionValidator {
             histogram: currentHistogram
         };
     }
-    
+
     /**
      * Calculate ADX (Average Directional Index) - Measures trend strength
      */
@@ -310,7 +322,7 @@ class DirectionValidator {
 
         // Calculate DX and ADX
         const dx = Math.abs(plusDIPercent - minusDIPercent) / (plusDIPercent + minusDIPercent) * 100;
-        
+
         return dx; // Simplified ADX (using DX as approximation)
     }
 
@@ -321,11 +333,11 @@ class DirectionValidator {
         if (volumes.length < period) {
             return volumes.reduce((a, b) => a + b, 0) / volumes.length;
         }
-        
+
         const recentVolumes = volumes.slice(-period);
         return recentVolumes.reduce((a, b) => a + b, 0) / period;
     }
-    
+
     /**
      * Determine if signal direction aligns with trend
      */
@@ -379,7 +391,7 @@ class DirectionValidator {
                 ? `Bearish trend confirmed (${bearishCount}/3 indicators, min: ${this.minIndicators})`
                 : `Insufficient bearish indicators (${bearishCount}/3, need: ${this.minIndicators})`;
         }
-        
+
         // Apply ADX filter if enabled
         if (valid && this.enableAdxFilter && adx !== null) {
             if (adx < this.minAdx) {
@@ -389,7 +401,7 @@ class DirectionValidator {
                 reason += `, Strong trend: ADX ${adx.toFixed(2)}`;
             }
         }
-        
+
         // Apply volume confirmation if enabled
         if (valid && this.enableVolumeConfirmation && !volumeConfirmed) {
             valid = false;
