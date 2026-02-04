@@ -577,6 +577,18 @@ class TradingStrategy {
                                 closeData.roiPercent || 0,
                                 duration
                             );
+                        } else if (!isSLHit && this.alerts && closeData) {
+                            // Position closed after TP1 (manual close or other reason)
+                            const isProfitable = closeData.pnl > 0;
+                            const emoji = isProfitable ? '✅' : '⚠️';
+                            const message =
+                                `${emoji} *Position Closed: ${symbol}*\n\n` +
+                                `Entry: $${signalData.entryPrice}\n` +
+                                `Close: $${closeData.closePrice.toFixed(4)}\n` +
+                                `PNL: $${closeData.pnl.toFixed(2)} (${closeData.pnlPercent.toFixed(2)}%)\n` +
+                                `ROI: ${closeData.roiPercent.toFixed(2)}%\n` +
+                                `Reason: ${closeData.remark}`;
+                            await this.alerts.sendAlert(message, isProfitable ? 'SUCCESS' : 'WARNING');
                         }
                     }
 
@@ -589,9 +601,7 @@ class TradingStrategy {
                 if (!signalData.tp1Filled && signalData.tp1OrderId) {
                     const tp1Status = await this.trader.tradingClient.futuresOrder({
                         symbol,
-                        orderId: signalData.tp1OrderId,
-                        side: signalData.exitSide,
-                        origQty: signalData.tp1Quantity  // Required by Binance API
+                        orderId: signalData.tp1OrderId
                     });
                     if (tp1Status.status === 'FILLED') {
                         logger.info(`✅ TP1 Hit for ${symbol}`);
@@ -623,9 +633,7 @@ class TradingStrategy {
                 if (signalData.tp2OrderId && signalData.tp2OrderId !== 'SKIPPED') {
                     const tp2Status = await this.trader.tradingClient.futuresOrder({
                         symbol,
-                        orderId: signalData.tp2OrderId,
-                        side: signalData.exitSide,
-                        origQty: signalData.tp2Quantity  // Required by Binance API
+                        orderId: signalData.tp2OrderId
                     });
                     if (tp2Status.status === 'FILLED') {
                         logger.info(`✅ TP2 Hit for ${symbol} - Trade Complete!`);
@@ -713,7 +721,13 @@ class TradingStrategy {
             logger.info(`✅ SL moved to breakeven for ${symbol} at ${formattedStopPrice}`);
 
             if (this.alerts) {
-                await this.alerts.sendAlert(`🛡️ *SL Moved to Breakeven*\nSymbol: ${symbol}\nNew SL: ${formattedStopPrice}`, 'INFO');
+                const message =
+                    `🛡️ *SL Moved to Breakeven*\n\n` +
+                    `Symbol: ${symbol}\n` +
+                    `Entry Price: $${signalData.entryPrice}\n` +
+                    `New SL: $${formattedStopPrice}\n` +
+                    `Status: TP1 filled, remaining 50% position protected`;
+                await this.alerts.sendAlert(message, 'SUCCESS');
             }
 
         } catch (error) {

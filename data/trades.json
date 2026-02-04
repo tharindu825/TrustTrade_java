@@ -1,0 +1,28 @@
+{
+  "trades": [
+    {
+      "id": "trade_1770136670316_htqwf6p65",
+      "symbol": "FOGOUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.02891,
+      "entryTime": "2026-02-03T16:37:50.316Z",
+      "quantity": 346,
+      "leverage": 20,
+      "tp1Price": 0.02833,
+      "tp2Price": 0.02746,
+      "slPrice": 0.02987667,
+      "closePrice": 0.02891,
+      "closeTime": "2026-02-03T21:09:57.152Z",
+      "pnl": -0.06055000000000001,
+      "pnlPercent": -0.6053268765133173,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-02-03T21:09:57.644Z"
+        }
+      ],
+      "roiPercent": -12.106537530266346
+    }
+  ]
+}
