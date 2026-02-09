@@ -599,7 +599,7 @@ class TradingStrategy {
 
                 // Check TP1 Status
                 if (!signalData.tp1Filled && signalData.tp1OrderId) {
-                    const tp1Status = await this.trader.tradingClient.futuresOrder({
+                    const tp1Status = await this.trader.tradingClient.futuresGetOrder({
                         symbol,
                         orderId: signalData.tp1OrderId
                     });
@@ -631,7 +631,7 @@ class TradingStrategy {
 
                 // Check TP2 Status
                 if (signalData.tp2OrderId && signalData.tp2OrderId !== 'SKIPPED') {
-                    const tp2Status = await this.trader.tradingClient.futuresOrder({
+                    const tp2Status = await this.trader.tradingClient.futuresGetOrder({
                         symbol,
                         orderId: signalData.tp2OrderId
                     });
@@ -696,29 +696,31 @@ class TradingStrategy {
                 }
             }
 
-            // Place new SL at Entry Price
-            // We need current position size? Or original - TP1? 
-            // TP1 filled means size is half.
-            // But safest is to get current position size.
+            // Get current position size and format values
             const position = await this.trader.getPosition(symbol);
-            if (!position) return;
+            if (!position) {
+                logger.warn(`No position found for ${symbol}, cannot move SL to breakeven`);
+                return;
+            }
 
             const quantity = Math.abs(parseFloat(position.positionAmt));
             const entryPrice = signalData.entryPrice;
-            // Add a small buffer for fees? Or raw entry? Usually raw entry.
-            // Ensure entry price is valid for STOP_MARKET stopPrice
             const formattedStopPrice = this.trader.formatPrice(symbol, entryPrice);
+            const formattedQuantity = this.trader.formatQuantity(symbol, quantity);
 
+            // Place new SL at Entry Price using quantity + reduceOnly
             const newSlOrder = await this.trader.tradingClient.futuresOrder({
                 symbol,
                 side: signalData.exitSide,
                 type: 'STOP_MARKET',
                 stopPrice: formattedStopPrice,
-                closePosition: true // Use closePosition=true if possible, simpler than managing Qty
+                quantity: formattedQuantity.toString(),
+                reduceOnly: true,  // Only reduce position
+                workingType: 'MARK_PRICE'  // Use mark price to avoid manipulation
             });
 
             signalData.slOrderId = newSlOrder.orderId;
-            logger.info(`✅ SL moved to breakeven for ${symbol} at ${formattedStopPrice}`);
+            logger.info(`✅ SL moved to breakeven for ${symbol} at ${formattedStopPrice} (Order ID: ${newSlOrder.orderId})`);
 
             if (this.alerts) {
                 const message =

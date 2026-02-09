@@ -445,26 +445,28 @@ class BinanceTrader {
     }
 
     /**
-     * Place stop-loss order using STOP_MARKET with closePosition
-     * Using closePosition=true to avoid quantity precision issues and API compatibility
+     * Place stop-loss order using STOP_MARKET with reduceOnly
+     * Using quantity with reduceOnly=true for API compatibility
      */
     async placeStopLoss(symbol, side, quantity, stopPrice) {
         try {
             await this.throttleApiRequest();
 
-            // Format price to correct precision
+            // Format price and quantity to correct precision
             const formattedPrice = this.formatPrice(symbol, stopPrice);
+            const formattedQuantity = this.formatQuantity(symbol, quantity);
 
-            logger.info(`Placing SL order: ${side} ${symbol} @ ${formattedPrice} (closePosition)`);
+            logger.info(`Placing SL order: ${side} ${formattedQuantity} ${symbol} @ ${formattedPrice} (reduceOnly)`);
 
-            // Use closePosition=true instead of quantity
-            // This is more reliable and avoids Binance API endpoint issues
+            // Use quantity with reduceOnly=true instead of closePosition
+            // This is the correct API pattern for STOP_MARKET orders
             const order = await this.tradingClient.futuresOrder({
                 symbol,
                 side,
                 type: 'STOP_MARKET',
                 stopPrice: formattedPrice.toString(),
-                closePosition: true,  // Automatically close entire position
+                quantity: formattedQuantity.toString(),
+                reduceOnly: true,  // Only reduce position, don't open new
                 workingType: 'MARK_PRICE'  // Use mark price to avoid manipulation
             });
 

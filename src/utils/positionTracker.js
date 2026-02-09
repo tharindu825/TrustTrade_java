@@ -170,40 +170,71 @@ class PositionTracker {
      * Retry placing protective orders
      */
     async retryProtectiveOrders(symbol, tracked, currentPosition) {
-        const { tp1Price, tp2Price, slPrice, exitSide } = tracked;
+        const { tp1Price, tp2Price, slPrice, exitSide, tp1OrderId, tp2OrderId, slOrderId } = tracked;
         const quantity = Math.abs(parseFloat(currentPosition.positionAmt));
 
         logger.info(`Retrying protective orders for ${symbol}:`);
         logger.info(`  Quantity: ${quantity}`);
         logger.info(`  TP1: ${tp1Price}, TP2: ${tp2Price}, SL: ${slPrice}`);
 
+        // Check existing open orders to avoid duplicates
+        const openOrders = await this.trader.getOpenOrders(symbol);
+        const tp1Exists = openOrders.some(o => o.orderId === tp1OrderId && o.status === 'NEW');
+        const tp2Exists = openOrders.some(o => o.orderId === tp2OrderId && o.status === 'NEW');
+        const slExists = openOrders.some(o => o.orderId === slOrderId && o.status === 'NEW');
+
+        logger.info(`  Existing orders - TP1: ${tp1Exists}, TP2: ${tp2Exists}, SL: ${slExists}`);
+
         // Split quantity for TP1 and TP2
         const halfQuantity = quantity * 0.5;
         const tp1Quantity = this.trader.formatQuantity(symbol, halfQuantity);
         const tp2Quantity = this.trader.formatQuantity(symbol, halfQuantity);
 
-        // Place TP1
-        await this.trader.placeTakeProfit(symbol, exitSide, tp1Quantity, tp1Price);
+        // Place TP1 only if it doesn't exist
+        if (!tp1Exists) {
+            logger.info(`  Placing TP1 (missing)...`);
+            await this.trader.placeTakeProfit(symbol, exitSide, tp1Quantity, tp1Price);
+        } else {
+            logger.info(`  TP1 already exists, skipping`);
+        }
 
-        // Place TP2
-        await this.trader.placeTakeProfit(symbol, exitSide, tp2Quantity, tp2Price);
+        // Place TP2 only if it doesn't exist
+        if (!tp2Exists) {
+            logger.info(`  Placing TP2 (missing)...`);
+            await this.trader.placeTakeProfit(symbol, exitSide, tp2Quantity, tp2Price);
+        } else {
+            logger.info(`  TP2 already exists, skipping`);
+        }
 
-        // Place SL
-        await this.trader.placeStopLoss(symbol, exitSide, quantity, slPrice);
+        // Place SL only if it doesn't exist
+        if (!slExists) {
+            logger.info(`  Placing SL (missing)...`);
+            await this.trader.placeStopLoss(symbol, exitSide, quantity, slPrice);
+        } else {
+            logger.info(`  SL already exists, skipping`);
+        }
 
         // Mark as protected
         this.markProtected(symbol);
 
-        logger.info(`✅ Successfully placed protective orders for ${symbol} on retry`);
+        logger.info(`✅ Successfully verified/placed protective orders for ${symbol}`);
 
         // Send success alert
         if (this.alerts) {
-            await this.alerts.sendAlert(
-                `✅ *Protective Orders Placed*\n\n` +
+            const placedOrders = [];
+            if (!tp1Exists) placedOrders.push('TP1');
+            if (!tp2Exists) placedOrders.push('TP2');
+            if (!slExists) placedOrders.push('SL');
+
+            const message = placedOrders.length > 0
+                ? `✅ *Protective Orders Placed*\n\n` +
                 `Symbol: ${symbol}\n` +
-                `TP/SL orders successfully placed after retry.`,
-                'SUCCESS'
-            );
+                `Placed: ${placedOrders.join(', ')}`
+                : `✅ *Protective Orders Verified*\n\n` +
+                `Symbol: ${symbol}\n` +
+                `All TP/SL orders already exist`;
+
+            await this.alerts.sendAlert(message, 'SUCCESS');
         }
     }
 
