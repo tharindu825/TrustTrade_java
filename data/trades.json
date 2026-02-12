@@ -1,0 +1,28 @@
+{
+  "trades": [
+    {
+      "id": "trade_1770667519936_2t6j46uzm",
+      "symbol": "UAIUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.2504,
+      "entryTime": "2026-02-09T20:05:19.936Z",
+      "quantity": 40,
+      "leverage": 20,
+      "tp1Price": 0.2554,
+      "tp2Price": 0.2629,
+      "slPrice": 0.24206667,
+      "closePrice": 0.2504,
+      "closeTime": "2026-02-10T00:08:34.305Z",
+      "pnl": -0.332,
+      "pnlPercent": -3.3146964856230032,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-02-10T00:08:34.797Z"
+        }
+      ],
+      "roiPercent": -66.29392971246007
+    }
+  ]
+}
