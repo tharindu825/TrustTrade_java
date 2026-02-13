@@ -1,4 +1,6 @@
 import BinanceAPI from 'binance-api-node';
+import crypto from 'crypto';
+import axios from 'axios';
 import logger from '../utils/logger.js';
 
 const Binance = BinanceAPI.default || BinanceAPI;
@@ -445,10 +447,10 @@ class BinanceTrader {
     }
 
     /**
-     * Place stop-loss order using STOP_MARKET with reduceOnly
-     * Using quantity with reduceOnly=true for API compatibility
+     * Place stop-loss order using Binance Algo Order API
+     * Required since Dec 9, 2025 - STOP_MARKET orders must use /fapi/v1/algoOrder
      */
-    async placeStopLoss(symbol, side, quantity, stopPrice) {
+    async placeAlgoStopLoss(symbol, side, quantity, stopPrice) {
         try {
             await this.throttleApiRequest();
 
@@ -456,27 +458,65 @@ class BinanceTrader {
             const formattedPrice = this.formatPrice(symbol, stopPrice);
             const formattedQuantity = this.formatQuantity(symbol, quantity);
 
-            logger.info(`Placing SL order: ${side} ${formattedQuantity} ${symbol} @ ${formattedPrice} (reduceOnly)`);
+            logger.info(`Placing SL order (Algo API): ${side} ${formattedQuantity} ${symbol} @ ${formattedPrice} (reduceOnly)`);
 
-            // Use quantity with reduceOnly=true instead of closePosition
-            // This is the correct API pattern for STOP_MARKET orders
-            const order = await this.tradingClient.futuresOrder({
+            const timestamp = Date.now();
+            const params = {
                 symbol,
                 side,
+                algoType: 'CONDITIONAL',
                 type: 'STOP_MARKET',
                 stopPrice: formattedPrice.toString(),
                 quantity: formattedQuantity.toString(),
-                reduceOnly: true,  // Only reduce position, don't open new
-                workingType: 'MARK_PRICE'  // Use mark price to avoid manipulation
-            });
+                reduceOnly: true,
+                workingType: 'MARK_PRICE',
+                timestamp,
+                recvWindow: 60000
+            };
 
-            logger.info(`✅ SL order placed successfully (Order ID: ${order.orderId})`);
-            return order;
+            // Create query string for signature
+            const queryString = Object.entries(params)
+                .map(([key, val]) => `${key}=${encodeURIComponent(val)}`)
+                .join('&');
+
+            // Generate HMAC SHA256 signature
+            const signature = crypto
+                .createHmac('sha256', this.config.TRADING_SECRET_KEY)
+                .update(queryString)
+                .digest('hex');
+
+            // Make request to Algo Order API
+            const response = await axios.post(
+                'https://fapi.binance.com/fapi/v1/algoOrder',
+                null,
+                {
+                    params: { ...params, signature },
+                    headers: {
+                        'X-MBX-APIKEY': this.config.TRADING_API_KEY
+                    }
+                }
+            );
+
+            logger.info(`✅ SL order placed successfully (Algo Order ID: ${response.data.algoOrderId})`);
+            return {
+                orderId: response.data.algoOrderId,
+                algoOrderId: response.data.algoOrderId,
+                ...response.data
+            };
 
         } catch (error) {
-            logger.error(`❌ Error placing SL order for ${symbol}: ${error.message}`, error);
-            throw error;
+            const errorMsg = error.response?.data?.msg || error.message;
+            logger.error(`❌ Error placing SL order (Algo API) for ${symbol}: ${errorMsg}`, error.response?.data || error);
+            throw new Error(errorMsg);
         }
+    }
+
+    /**
+     * Place stop-loss order - wrapper that uses Algo Order API
+     * @deprecated Direct futuresOrder calls for STOP_MARKET no longer supported
+     */
+    async placeStopLoss(symbol, side, quantity, stopPrice) {
+        return await this.placeAlgoStopLoss(symbol, side, quantity, stopPrice);
     }
 
     /**

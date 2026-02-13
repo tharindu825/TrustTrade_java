@@ -680,62 +680,86 @@ class TradingStrategy {
      * Move Stop Loss to Entry Price (Breakeven)
      */
     async moveStopLossToBreakeven(symbol, signalData) {
-        try {
-            logger.info(`Moving SL to breakeven for ${symbol}...`);
+        const maxRetries = 3;
+        let lastError = null;
 
-            // Cancel existing SL with error handling
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                await this.trader.cancelOrder(symbol, signalData.slOrderId);
-                logger.info(`Cancelled old SL order ${signalData.slOrderId} for ${symbol}`);
-            } catch (cancelError) {
-                // If order already filled/cancelled, log but continue
-                if (cancelError.code === -2011) {
-                    logger.warn(`Old SL order ${signalData.slOrderId} already inactive, proceeding...`);
-                } else {
-                    throw cancelError; // Re-throw if it's a different error
+                logger.info(`Moving SL to breakeven for ${symbol}... (Attempt ${attempt}/${maxRetries})`);
+
+                // Cancel existing SL with error handling
+                try {
+                    await this.trader.cancelOrder(symbol, signalData.slOrderId);
+                    logger.info(`Cancelled old SL order ${signalData.slOrderId} for ${symbol}`);
+                } catch (cancelError) {
+                    // If order already filled/cancelled, log but continue
+                    if (cancelError.code === -2011) {
+                        logger.warn(`Old SL order ${signalData.slOrderId} already inactive, proceeding...`);
+                    } else {
+                        throw cancelError; // Re-throw if it's a different error
+                    }
                 }
-            }
 
-            // Get current position size and format values
-            const position = await this.trader.getPosition(symbol);
-            if (!position) {
-                logger.warn(`No position found for ${symbol}, cannot move SL to breakeven`);
+                // Get current position size and format values
+                const position = await this.trader.getPosition(symbol);
+                if (!position) {
+                    logger.warn(`No position found for ${symbol}, cannot move SL to breakeven`);
+                    return;
+                }
+
+                const quantity = Math.abs(parseFloat(position.positionAmt));
+                const entryPrice = signalData.entryPrice;
+                const formattedStopPrice = this.trader.formatPrice(symbol, entryPrice);
+
+                // Place new SL at Entry Price using Algo Order API
+                const newSlOrder = await this.trader.placeStopLoss(
+                    symbol,
+                    signalData.exitSide,
+                    quantity,
+                    entryPrice
+                );
+
+                signalData.slOrderId = newSlOrder.orderId;
+                logger.info(`✅ SL moved to breakeven for ${symbol} at ${formattedStopPrice} (Order ID: ${newSlOrder.orderId})`);
+
+                if (this.alerts) {
+                    const message =
+                        `🛡️ *SL Moved to Breakeven*\\n\\n` +
+                        `Symbol: ${symbol}\\n` +
+                        `Entry Price: $${signalData.entryPrice}\\n` +
+                        `New SL: $${formattedStopPrice}\\n` +
+                        `Status: TP1 filled, remaining 50% position protected`;
+                    await this.alerts.sendAlert(message, 'SUCCESS');
+                }
+
+                // Success - exit retry loop
                 return;
-            }
 
-            const quantity = Math.abs(parseFloat(position.positionAmt));
-            const entryPrice = signalData.entryPrice;
-            const formattedStopPrice = this.trader.formatPrice(symbol, entryPrice);
-            const formattedQuantity = this.trader.formatQuantity(symbol, quantity);
+            } catch (error) {
+                lastError = error;
+                const errorMsg = error.message || 'Unknown error';
+                logger.error(`Failed to move SL to breakeven for ${symbol} (Attempt ${attempt}/${maxRetries}): ${errorMsg}`);
 
-            // Place new SL at Entry Price using quantity + reduceOnly
-            const newSlOrder = await this.trader.tradingClient.futuresOrder({
-                symbol,
-                side: signalData.exitSide,
-                type: 'STOP_MARKET',
-                stopPrice: formattedStopPrice,
-                quantity: formattedQuantity.toString(),
-                reduceOnly: true,  // Only reduce position
-                workingType: 'MARK_PRICE'  // Use mark price to avoid manipulation
-            });
-
-            signalData.slOrderId = newSlOrder.orderId;
-            logger.info(`✅ SL moved to breakeven for ${symbol} at ${formattedStopPrice} (Order ID: ${newSlOrder.orderId})`);
-
-            if (this.alerts) {
-                const message =
-                    `🛡️ *SL Moved to Breakeven*\n\n` +
-                    `Symbol: ${symbol}\n` +
-                    `Entry Price: $${signalData.entryPrice}\n` +
-                    `New SL: $${formattedStopPrice}\n` +
-                    `Status: TP1 filled, remaining 50% position protected`;
-                await this.alerts.sendAlert(message, 'SUCCESS');
-            }
-
-        } catch (error) {
-            logger.error(`Failed to move SL to breakeven for ${symbol}: ${error.message}`);
-            if (this.alerts) {
-                await this.alerts.sendAlert(`⚠️ Failed to move SL to breakeven for ${symbol}: ${error.message}`, 'ERROR');
+                // If not the last attempt, wait before retrying
+                if (attempt < maxRetries) {
+                    const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s, 4s
+                    logger.info(`Waiting ${delay}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    // All retries failed - send critical alert
+                    logger.error(`🚨 CRITICAL: All ${maxRetries} attempts to move SL to breakeven failed for ${symbol}`);
+                    if (this.alerts) {
+                        await this.alerts.sendAlert(
+                            `🚨 *CRITICAL: SL Move Failed*\\n\\n` +
+                            `Symbol: ${symbol}\\n` +
+                            `Error: ${errorMsg}\\n\\n` +
+                            `All ${maxRetries} retry attempts failed!\\n` +
+                            `⚠️ Position still protected by original SL at $${signalData.slPrice}\\n\\n` +
+                            `Manual intervention may be required.`,
+                            'CRITICAL'
+                        );
+                    }
+                }
             }
         }
     }

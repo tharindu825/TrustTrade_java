@@ -23,6 +23,30 @@
         }
       ],
       "roiPercent": -66.29392971246007
+    },
+    {
+      "id": "trade_1770905409722_symlo14nz",
+      "symbol": "JCTUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.001583,
+      "entryTime": "2026-02-12T14:10:09.722Z",
+      "quantity": 6317,
+      "leverage": 20,
+      "tp1Price": 0.001615,
+      "tp2Price": 0.001662,
+      "slPrice": 0.00153033,
+      "closePrice": 0.001583,
+      "closeTime": "2026-02-12T16:10:03.985Z",
+      "pnl": -0.135762,
+      "pnlPercent": -1.3576456595029647,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-12T16:10:04.482Z"
+        }
+      ],
+      "roiPercent": -27.15291319005929
     }
   ]
 }
