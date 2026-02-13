@@ -47,6 +47,30 @@
         }
       ],
       "roiPercent": -27.15291319005929
+    },
+    {
+      "id": "trade_1770977703594_ae92lyrov",
+      "symbol": "LQTYUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.2621,
+      "entryTime": "2026-02-13T10:15:03.594Z",
+      "quantity": 38.2,
+      "leverage": 20,
+      "tp1Price": 0.2569,
+      "tp2Price": 0.249,
+      "slPrice": 0.27083333,
+      "closePrice": 0.2621,
+      "closeTime": "2026-02-13T10:20:44.120Z",
+      "pnl": 0.06876,
+      "pnlPercent": 0.686760778328882,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-02-13T10:20:44.600Z"
+        }
+      ],
+      "roiPercent": 13.73521556657764
     }
   ]
 }
