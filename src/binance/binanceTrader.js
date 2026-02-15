@@ -497,10 +497,10 @@ class BinanceTrader {
                 }
             );
 
-            logger.info(`✅ SL order placed successfully (Algo Order ID: ${response.data.algoOrderId})`);
+            logger.info(`✅ SL order placed successfully (Algo Order ID: ${response.data.algoId})`);
             return {
-                orderId: response.data.algoOrderId,
-                algoOrderId: response.data.algoOrderId,
+                orderId: response.data.algoId,  // Binance returns 'algoId' not 'algoOrderId'
+                algoOrderId: response.data.algoId,
                 ...response.data
             };
 
@@ -552,17 +552,78 @@ class BinanceTrader {
     }
 
     /**
-     * Cancel order
+     * Cancel algo order using DELETE /fapi/v1/algoOrder
+     * Required for conditional orders (STOP_MARKET, TAKE_PROFIT_MARKET)
+     */
+    async cancelAlgoOrder(symbol, algoId) {
+        try {
+            await this.throttleApiRequest();
+
+            const timestamp = Date.now();
+            const params = {
+                symbol,
+                algoId: algoId.toString(),
+                timestamp,
+                recvWindow: 60000
+            };
+
+            // Create query string for signature
+            const queryString = Object.entries(params)
+                .map(([key, val]) => `${key}=${encodeURIComponent(val)}`)
+                .join('&');
+
+            // Generate HMAC SHA256 signature
+            const signature = crypto
+                .createHmac('sha256', this.config.TRADING_SECRET_KEY)
+                .update(queryString)
+                .digest('hex');
+
+            // Make DELETE request to Algo Order API
+            const response = await axios.delete(
+                'https://fapi.binance.com/fapi/v1/algoOrder',
+                {
+                    params: { ...params, signature },
+                    headers: {
+                        'X-MBX-APIKEY': this.config.TRADING_API_KEY
+                    }
+                }
+            );
+
+            logger.info(`✅ Cancelled algo order ${algoId} for ${symbol}`);
+            return true;
+
+        } catch (error) {
+            const errorMsg = error.response?.data?.msg || error.message;
+            logger.error(`❌ Error canceling algo order ${algoId} for ${symbol}: ${errorMsg}`, error.response?.data || error);
+            throw new Error(errorMsg);
+        }
+    }
+
+    /**
+     * Cancel order - handles both regular and algo orders
+     * Tries regular cancel first, then algo cancel if that fails
      */
     async cancelOrder(symbol, orderId) {
         try {
             await this.throttleApiRequest();
-            await this.tradingClient.futuresCancelOrder({
-                symbol,
-                orderId
-            });
-            logger.info(`Canceled order ${orderId} for ${symbol}`);
-            return true;
+
+            // Try regular order cancellation first
+            try {
+                await this.tradingClient.futuresCancelOrder({
+                    symbol,
+                    orderId
+                });
+                logger.info(`Canceled order ${orderId} for ${symbol}`);
+                return true;
+            } catch (regularError) {
+                // If regular cancel fails, try algo order cancellation
+                if (regularError.code === -2011 || regularError.message?.includes('Unknown order')) {
+                    logger.info(`Regular cancel failed for ${orderId}, trying algo order cancel...`);
+                    await this.cancelAlgoOrder(symbol, orderId);
+                    return true;
+                }
+                throw regularError;
+            }
         } catch (error) {
             logger.error(`Error canceling order ${orderId} for ${symbol}: ${error.message}`, error);
             return false;
