@@ -71,6 +71,30 @@
         }
       ],
       "roiPercent": 13.73521556657764
+    },
+    {
+      "id": "trade_1771098596771_0akpv7tja",
+      "symbol": "INUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.06695,
+      "entryTime": "2026-02-14T19:49:56.771Z",
+      "quantity": 149,
+      "leverage": 20,
+      "tp1Price": 0.06561,
+      "tp2Price": 0.0636,
+      "slPrice": 0.06918333,
+      "closePrice": 0.06695,
+      "closeTime": "2026-02-15T07:02:20.342Z",
+      "pnl": 0.15452,
+      "pnlPercent": 1.548987273884648,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-15T07:02:20.838Z"
+        }
+      ],
+      "roiPercent": 30.979745477692962
     }
   ]
 }
