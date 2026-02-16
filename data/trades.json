@@ -95,6 +95,30 @@
         }
       ],
       "roiPercent": 30.979745477692962
+    },
+    {
+      "id": "trade_1771145107500_drv3ikk90",
+      "symbol": "MUSDT",
+      "direction": "SHORT",
+      "entryPrice": 1.2993,
+      "entryTime": "2026-02-15T08:45:07.500Z",
+      "quantity": 8,
+      "leverage": 20,
+      "tp1Price": 1.2733,
+      "tp2Price": 1.2343,
+      "slPrice": 1.34263333,
+      "closePrice": 1.2993,
+      "closeTime": "2026-02-15T14:47:30.519Z",
+      "pnl": 0.1014,
+      "pnlPercent": 0.9755252828446087,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-15T14:47:30.999Z"
+        }
+      ],
+      "roiPercent": 19.510505656892175
     }
   ]
 }
