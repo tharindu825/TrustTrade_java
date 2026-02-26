@@ -119,6 +119,102 @@
         }
       ],
       "roiPercent": 19.510505656892175
+    },
+    {
+      "id": "trade_1771257914372_6j28jxftx",
+      "symbol": "COMPUSDT",
+      "direction": "SHORT",
+      "entryPrice": 19.56,
+      "entryTime": "2026-02-16T16:05:14.372Z",
+      "quantity": 0.511,
+      "leverage": 20,
+      "tp1Price": 19.1688,
+      "tp2Price": 18.582,
+      "slPrice": 20.212,
+      "closePrice": 19.55,
+      "closeTime": "2026-02-17T16:01:59.423Z",
+      "pnl": 0.09473999999999999,
+      "pnlPercent": 0.9478587636416024,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-17T16:01:59.911Z"
+        }
+      ],
+      "roiPercent": 18.957175272832046
+    },
+    {
+      "id": "trade_1771425082302_knvui8v8g",
+      "symbol": "FUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.006172,
+      "entryTime": "2026-02-18T14:31:22.302Z",
+      "quantity": 1620,
+      "leverage": 20,
+      "tp1Price": 0.006049,
+      "tp2Price": 0.005863,
+      "slPrice": 0.006378,
+      "closePrice": 0.006172,
+      "closeTime": "2026-02-19T00:32:25.688Z",
+      "pnl": 0.39366,
+      "pnlPercent": 3.9371354504212572,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-19T00:32:26.179Z"
+        }
+      ],
+      "roiPercent": 78.74270900842515
+    },
+    {
+      "id": "trade_1771510612744_pguc73r1k",
+      "symbol": "KGENUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.1827,
+      "entryTime": "2026-02-19T14:16:52.744Z",
+      "quantity": 55,
+      "leverage": 20,
+      "tp1Price": 0.1864,
+      "tp2Price": 0.1919,
+      "slPrice": 0.17656667,
+      "closePrice": 0.1827,
+      "closeTime": "2026-02-19T15:22:15.102Z",
+      "pnl": 0.09712,
+      "pnlPercent": 0.9665124147882768,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-19T15:22:15.597Z"
+        }
+      ],
+      "roiPercent": 19.330248295765536
+    },
+    {
+      "id": "trade_1771770508597_s5ji99s78",
+      "symbol": "SAPIENUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.1026,
+      "entryTime": "2026-02-22T14:28:28.597Z",
+      "quantity": 97,
+      "leverage": 20,
+      "tp1Price": 0.1047,
+      "tp2Price": 0.1077,
+      "slPrice": 0.0992,
+      "closePrice": 0.1026,
+      "closeTime": "2026-02-22T16:09:01.101Z",
+      "pnl": -0.33271,
+      "pnlPercent": -3.343079922027291,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-02-22T16:09:01.594Z"
+        }
+      ],
+      "roiPercent": -66.8615984405458
     }
   ]
 }
