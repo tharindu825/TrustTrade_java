@@ -402,12 +402,10 @@ class DirectionValidator {
             }
         }
 
-        // Apply volume confirmation if enabled
-        if (valid && this.enableVolumeConfirmation && !volumeConfirmed) {
-            valid = false;
-            reason = `Low volume: ${volumeRatio.toFixed(2)}x < ${this.minVolumeMultiplier}x required`;
-        } else if (valid && volumeRatio !== null) {
-            reason += `, Volume: ${volumeRatio.toFixed(2)}x`;
+        // Append volume info (informational only - does NOT override trend validation)
+        if (volumeRatio !== null) {
+            const volStatus = volumeConfirmed ? '✅' : '⚠️ Low';
+            reason += `, Volume: ${volStatus} ${volumeRatio.toFixed(2)}x`;
         }
 
         return {

@@ -104,20 +104,7 @@ class TradingStrategy {
             const trendValidation = await this.directionValidator.validateSignalDirection(signal.coin, signal.direction);
             if (!trendValidation.valid) {
                 logger.warn(`⚠️ Trend validation failed for ${signal.coin}: ${trendValidation.reason}`);
-                if (this.directionValidator.alertOnSkip && this.alerts) {
-                    await this.alerts.sendAlert(
-                        `⚠️ *Trend Validation Failed*\n\n` +
-                        `Symbol: ${signal.coin}\n` +
-                        `Signal: ${signal.direction}\n` +
-                        `Reason: ${trendValidation.reason}\n\n` +
-                        `Indicators:\n` +
-                        `RSI: ${trendValidation.indicators.rsi}\n` +
-                        `EMA: ${trendValidation.indicators.ema}\n` +
-                        `MACD: ${trendValidation.indicators.macd}\n` +
-                        `Price: ${trendValidation.indicators.currentPrice}`,
-                        'WARNING'
-                    );
-                }
+                // Alert is already sent by directionValidator.sendValidationAlert()
                 return false;
             }
 
