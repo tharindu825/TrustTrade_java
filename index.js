@@ -72,7 +72,6 @@ class TrustTradeBot {
 
             // Initialize Telegram alerts
             this.alerts = new TelegramAlerts(this.config);
-            await this.alerts.sendStartupAlert();
 
             // Initialize trade logger
             this.tradeLogger = new TradeLogger();
