@@ -499,23 +499,40 @@ class WebDashboard {
             'Telegram Configuration': ['API_ID', 'API_HASH', 'PHONE_NUMBER', 'CHANNEL_ID'],
             'Binance API Keys': ['TRADING_API_KEY', 'TRADING_SECRET_KEY', 'MONITORING_API_KEY', 'MONITORING_SECRET_KEY'],
             'Trading Mode': ['TRADING_MODE'],
-            'Position & Risk Management': ['MAX_OPEN_POSITIONS', 'MAX_OPEN_ENTRY_ORDERS', 'MIN_BALANCE', 'MARGIN_THRESHOLD', 'TARGET_MARGIN_PER_TRADE', 'DEFAULT_LEVERAGE', 'MAX_LEVERAGE', 'MAX_TOTAL_NOTIONAL'],
+            'Position & Risk Management': ['MAX_OPEN_POSITIONS', 'MAX_OPEN_ENTRY_ORDERS', 'MIN_BALANCE', 'MARGIN_THRESHOLD', 'TARGET_MARGIN_PER_TRADE', 'DEFAULT_LEVERAGE', 'MAX_LEVERAGE', 'MAX_TOTAL_NOTIONAL', 'MARGIN_TYPE', 'ENABLE_DIRECTION_VALIDATION'],
             'Stop Loss & Take Profit': ['SL_PERCENTAGE', 'TRAILING_SL_TRIGGER', 'TP1_ROI', 'TP2_ROI', 'MIN_RISK_REWARD'],
             'Filters': ['ENABLE_RISK_REWARD_FILTER', 'ENABLE_VOLATILITY_FILTER', 'ENABLE_SPREAD_FILTER', 'ENABLE_TIME_FILTER', 'ENABLE_TREND_FILTER', 'ENABLE_CANDLE_WICK_FILTER', 'ENABLE_VOLUME_SPIKE_DETECTION'],
+            'Direction Validation & Strictness': ['ENABLE_DIRECTION_VALIDATION_FILTER', 'STRICTNESS_MODE', 'DIRECTION_RSI_PERIOD', 'DIRECTION_EMA_PERIOD', 'DIRECTION_MACD_FAST', 'DIRECTION_MACD_SLOW', 'DIRECTION_MACD_SIGNAL', 'DIRECTION_KLINES_LIMIT', 'DIRECTION_RSI_BULLISH_THRESHOLD', 'DIRECTION_RSI_BEARISH_THRESHOLD', 'DIRECTION_ALERT_ON_SKIP'],
+            'ADX Filter': ['ADX_PERIOD', 'MIN_ADX'],
+            'Volume Confirmation': ['VOLUME_PERIOD', 'MIN_VOLUME_MULTIPLIER'],
             'Volatility Filters': ['MAX_ATR_PERCENT', 'MAX_VOLATILITY_PERCENT', 'MAX_SPREAD_PERCENT', 'MIN_FUNDING_RATE', 'MAX_FUNDING_RATE'],
-            'Telegram Alerts': ['ALERT_BOT_TOKEN', 'ALERT_CHAT_ID', 'ALERT_LEVEL'],
+            'Telegram Alerts': ['ALERT_BOT_TOKEN', 'ALERT_CHAT_ID', 'ALERT_LEVEL', 'ALERT_ON_VALIDATION_PASS', 'ALERT_ON_VALIDATION_FAIL', 'ALERT_ON_ENTRY_FILL', 'ALERT_ON_SL_HIT', 'ALERT_ON_TP_HIT'],
             'API Rate Limiting': ['API_REQUEST_DELAY', 'MAX_REQUESTS_PER_MINUTE'],
             'Trade Frequency': ['MAX_TRADES_PER_HOUR', 'TRADE_COOLDOWN_SECONDS'],
             'Deduplication': ['DEDUPLICATION_WINDOW'],
             'Web Dashboard': ['WEB_PORT']
         };
 
+        // Track which keys have been written
+        const writtenKeys = new Set();
+
         for (const [groupName, keys] of Object.entries(groups)) {
             content += `# ${groupName}\n`;
             for (const key of keys) {
                 if (config[key] !== undefined) {
                     content += `${key}=${config[key]}\n`;
+                    writtenKeys.add(key);
                 }
+            }
+            content += '\n';
+        }
+
+        // Preserve any extra keys not in the groups above
+        const extraKeys = Object.keys(config).filter(k => !writtenKeys.has(k));
+        if (extraKeys.length > 0) {
+            content += '# Other Settings\n';
+            for (const key of extraKeys) {
+                content += `${key}=${config[key]}\n`;
             }
             content += '\n';
         }

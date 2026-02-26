@@ -101,7 +101,7 @@ class TradingStrategy {
             }
 
             // Advanced direction validation (trend-based filter)
-            const trendValidation = await this.directionValidator.validateSignalDirection(signal.coin, signal.direction);
+            const trendValidation = await this.directionValidator.validateSignalDirection(signal.coin, signal.direction, signal);
             if (!trendValidation.valid) {
                 logger.warn(`⚠️ Trend validation failed for ${signal.coin}: ${trendValidation.reason}`);
                 // Alert is already sent by directionValidator.sendValidationAlert()
@@ -168,15 +168,9 @@ class TradingStrategy {
                 signal.targets
             );
 
-            // Validate risk:reward ratio
-            if (this.enableRiskRewardFilter) {
-                const riskReward = this.calculateRiskReward(entryPrice, tp1Price, slPrice, direction);
-                if (riskReward < this.minRiskReward) {
-                    logger.warn(`Risk:Reward ratio too low: ${riskReward.toFixed(2)} (min: ${this.minRiskReward})`);
-                    return false;
-                }
-                logger.info(`Risk:Reward ratio: ${riskReward.toFixed(2)}`);
-            }
+            // R:R is now validated in the direction validator's slot system
+            const riskReward = this.calculateRiskReward(entryPrice, tp1Price, slPrice, direction);
+            logger.info(`Risk:Reward ratio: ${riskReward.toFixed(2)}`);
 
             // Determine order side
             const entrySide = direction === 'LONG' ? 'BUY' : 'SELL';

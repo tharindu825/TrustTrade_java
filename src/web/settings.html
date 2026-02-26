@@ -736,19 +736,47 @@
                     </div>
 
                     <div class="card">
-                        <h3><span class="icon">🧭</span> Direction Validation Filter</h3>
+                        <h3><span class="icon">🧭</span> Signal Strictness Mode</h3>
                         <div class="auth-info">
-                            💡 <strong>Note:</strong> This filter validates signal direction against trend indicators
-                            (RSI, EMA,
-                            MACD) to prevent trading against the trend.
+                            💡 <strong>How it works:</strong> Each mode uses 3 filter slots. Signals must pass the
+                            required number of slots to execute a trade.
+                        </div>
+                        <div class="form-group">
+                            <label>Strictness Mode</label>
+                            <select id="STRICTNESS_MODE" name="STRICTNESS_MODE" onchange="updateStrictnessDisplay()">
+                                <option value="LESS_STRICT">🟢 Less Strict (1 of 3) — More signals</option>
+                                <option value="MODERATE" selected>🟡 Moderate (2 of 3) — Recommended</option>
+                                <option value="VERY_STRICT">🔴 Very Strict (3 of 3) — High conviction only</option>
+                            </select>
+                        </div>
+                        <div id="strictness-info"
+                            style="background: #1a1f2e; border-radius: 8px; padding: 15px; margin: 10px 0;">
+                            <div id="strictness-slots" style="font-size: 14px; line-height: 1.8;"></div>
+                            <div id="strictness-desc" style="color: #718096; font-size: 13px; margin-top: 8px;"></div>
                         </div>
                         <div class="form-group">
                             <label>Enable Direction Validation</label>
-                            <select id="ENABLE_DIRECTION_VALIDATION" name="ENABLE_DIRECTION_VALIDATION">
-                                <option value="true">✅ Enabled</option>
-                                <option value="false">❌ Disabled</option>
+                            <select id="ENABLE_DIRECTION_VALIDATION_FILTER" name="ENABLE_DIRECTION_VALIDATION_FILTER">
+                                <option value="true">✅ Enabled (Recommended)</option>
+                                <option value="false">❌ Disabled (all signals pass)</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>Alert on Skip</label>
+                            <select id="DIRECTION_ALERT_ON_SKIP" name="DIRECTION_ALERT_ON_SKIP">
+                                <option value="true">✅ Send alert when skipping misaligned signal</option>
+                                <option value="false">❌ No alert</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><span class="icon">⚙️</span> Filter Thresholds (Advanced)</h3>
+                        <div class="auth-info">
+                            💡 These thresholds are used by the active filter slots. Adjust only if you know what you're
+                            doing.
+                        </div>
+                        <h4 style="margin: 15px 0 10px; color: #a0aec0;">📈 Direction Validation (RSI + EMA + MACD)</h4>
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>RSI Period</label>
@@ -763,19 +791,19 @@
                         </div>
                         <div class="grid-2">
                             <div class="form-group">
-                                <label>MACD Fast Period</label>
+                                <label>MACD Fast</label>
                                 <input type="number" id="DIRECTION_MACD_FAST" name="DIRECTION_MACD_FAST"
                                     placeholder="12">
                             </div>
                             <div class="form-group">
-                                <label>MACD Slow Period</label>
+                                <label>MACD Slow</label>
                                 <input type="number" id="DIRECTION_MACD_SLOW" name="DIRECTION_MACD_SLOW"
                                     placeholder="26">
                             </div>
                         </div>
                         <div class="grid-2">
                             <div class="form-group">
-                                <label>MACD Signal Period</label>
+                                <label>MACD Signal</label>
                                 <input type="number" id="DIRECTION_MACD_SIGNAL" name="DIRECTION_MACD_SIGNAL"
                                     placeholder="9">
                             </div>
@@ -797,81 +825,34 @@
                                     name="DIRECTION_RSI_BEARISH_THRESHOLD" placeholder="50">
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Minimum Indicators Required</label>
-                            <select id="DIRECTION_MIN_INDICATORS" name="DIRECTION_MIN_INDICATORS">
-                                <option value="1">1 of 3 (Less Strict)</option>
-                                <option value="2">2 of 3 (Moderate - Recommended)</option>
-                                <option value="3">3 of 3 (Very Strict)</option>
-                            </select>
-                            <small style="color: #718096; display: block; margin-top: 5px;">
-                                How many indicators must agree with signal direction. Lower = more trades allowed.
-                            </small>
-                        </div>
-                        <div class="form-group">
-                            <label>Alert on Skip</label>
-                            <select id="DIRECTION_ALERT_ON_SKIP" name="DIRECTION_ALERT_ON_SKIP">
-                                <option value="true">✅ Send alert when skipping misaligned signal</option>
-                                <option value="false">❌ No alert</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <div class="card">
-                        <h3><span class="icon">📈</span> ADX Filter (Trend Strength)</h3>
-                        <div class="auth-info">
-                            💡 <strong>Note:</strong> ADX (Average Directional Index) measures trend strength. This filter prevents trading in choppy/sideways markets where trends are weak.
-                        </div>
-                        <div class="form-group">
-                            <label>Enable ADX Filter</label>
-                            <select id="ENABLE_ADX_FILTER" name="ENABLE_ADX_FILTER">
-                                <option value="true">✅ Enabled (Recommended)</option>
-                                <option value="false">❌ Disabled</option>
-                            </select>
-                        </div>
+                        <h4 style="margin: 20px 0 10px; color: #a0aec0;">📊 ADX (Trend Strength)</h4>
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>ADX Period</label>
                                 <input type="number" id="ADX_PERIOD" name="ADX_PERIOD" placeholder="14">
-                                <small style="color: #718096; display: block; margin-top: 5px;">
-                                    Number of candles to calculate ADX. Default: 14
-                                </small>
                             </div>
                             <div class="form-group">
                                 <label>Minimum ADX Value</label>
-                                <input type="number" step="0.1" id="MIN_ADX" name="MIN_ADX" placeholder="20">
+                                <input type="number" step="0.1" id="MIN_ADX" name="MIN_ADX" placeholder="22">
                                 <small style="color: #718096; display: block; margin-top: 5px;">
-                                    Minimum trend strength required. 20-25 = moderate, 25+ = strong trend
+                                    22-25 = moderate trend, 28+ = strong trend
                                 </small>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="card">
-                        <h3><span class="icon">📊</span> Volume Confirmation</h3>
-                        <div class="auth-info">
-                            💡 <strong>Note:</strong> Volume confirmation requires higher-than-average trading volume to enter a position. This helps confirm signal strength and avoid low-liquidity traps.
-                        </div>
-                        <div class="form-group">
-                            <label>Enable Volume Confirmation</label>
-                            <select id="ENABLE_VOLUME_CONFIRMATION" name="ENABLE_VOLUME_CONFIRMATION">
-                                <option value="true">✅ Enabled (Recommended)</option>
-                                <option value="false">❌ Disabled</option>
-                            </select>
-                        </div>
+                        <h4 style="margin: 20px 0 10px; color: #a0aec0;">📊 Volume Confirmation</h4>
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>Volume Period</label>
                                 <input type="number" id="VOLUME_PERIOD" name="VOLUME_PERIOD" placeholder="20">
-                                <small style="color: #718096; display: block; margin-top: 5px;">
-                                    Number of candles to calculate average volume. Default: 20
-                                </small>
                             </div>
                             <div class="form-group">
-                                <label>Minimum Volume Multiplier</label>
-                                <input type="number" step="0.1" id="MIN_VOLUME_MULTIPLIER" name="MIN_VOLUME_MULTIPLIER" placeholder="1.2">
+                                <label>Min Volume Multiplier</label>
+                                <input type="number" step="0.1" id="MIN_VOLUME_MULTIPLIER" name="MIN_VOLUME_MULTIPLIER"
+                                    placeholder="0.8">
                                 <small style="color: #718096; display: block; margin-top: 5px;">
-                                    Current volume must be this many times the average. 1.2 = 20% above average
+                                    0.8 = 80% of average volume
                                 </small>
                             </div>
                         </div>
@@ -917,7 +898,8 @@
                     <div class="card">
                         <h3><span class="icon">🔔</span> Alert Notifications</h3>
                         <div class="auth-info">
-                            💡 <strong>Note:</strong> Control which trading events trigger Telegram alerts. All events are always logged to files and GUI.
+                            💡 <strong>Note:</strong> Control which trading events trigger Telegram alerts. All events
+                            are always logged to files and GUI.
                         </div>
                         <div class="grid-2">
                             <div class="form-group">
@@ -1161,8 +1143,47 @@
             }, 5000);
         }
 
+        // Strictness mode display
+        const STRICTNESS_PRESETS = {
+            LESS_STRICT: {
+                slots: ['Direction Validation', 'Risk:Reward', 'EMA'],
+                icons: ['🧭', '⚖️', '📈'],
+                minRequired: 1,
+                desc: 'Lets ~60-70% of signals through. Cuts counter-trend garbage and bad R:R setups.'
+            },
+            MODERATE: {
+                slots: ['Direction Validation', 'ADX', 'Risk:Reward'],
+                icons: ['🧭', '📊', '⚖️'],
+                minRequired: 2,
+                desc: 'Best balance of win-rate vs signal volume. Kills ~60% of choppy fakeouts.'
+            },
+            VERY_STRICT: {
+                slots: ['Direction Validation', 'ADX', 'Volume'],
+                icons: ['🧭', '📊', '📊'],
+                minRequired: 3,
+                desc: 'Only high-conviction setups. Very few signals but extremely high win rate.'
+            }
+        };
+
+        function updateStrictnessDisplay() {
+            const mode = document.getElementById('STRICTNESS_MODE').value;
+            const preset = STRICTNESS_PRESETS[mode];
+            if (!preset) return;
+
+            const slotsHtml = preset.slots.map((slot, i) =>
+                `<span style="display:inline-block; background:#2d3748; padding:4px 10px; border-radius:4px; margin:3px 4px;">` +
+                `${preset.icons[i]} <strong>${slot}</strong></span>`
+            ).join('');
+
+            document.getElementById('strictness-slots').innerHTML =
+                `<div style="margin-bottom:6px; color:#a0aec0;">Active Slots (need ${preset.minRequired} of ${preset.slots.length}):</div>` +
+                slotsHtml;
+            document.getElementById('strictness-desc').textContent = preset.desc;
+        }
+
         // Load config on page load
         loadAllConfig();
+        setTimeout(updateStrictnessDisplay, 500);
     </script>
 </body>
 
