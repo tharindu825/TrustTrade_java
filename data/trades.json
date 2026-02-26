@@ -215,6 +215,78 @@
         }
       ],
       "roiPercent": -66.8615984405458
+    },
+    {
+      "id": "trade_1772115606366_dxls94oj1",
+      "symbol": "TRIAUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.01986,
+      "entryTime": "2026-02-26T14:20:06.366Z",
+      "quantity": 504,
+      "leverage": 20,
+      "tp1Price": 0.01946,
+      "tp2Price": 0.01887,
+      "slPrice": 0.02052,
+      "closePrice": 0.01986,
+      "closeTime": "2026-02-26T15:22:48.745Z",
+      "pnl": 0.08568,
+      "pnlPercent": 0.8559919436052367,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-26T15:22:49.237Z"
+        }
+      ],
+      "roiPercent": 17.119838872104733
+    },
+    {
+      "id": "trade_1772117781999_3toggnwdx",
+      "symbol": "WETUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.1095,
+      "entryTime": "2026-02-26T14:56:21.999Z",
+      "quantity": 91,
+      "leverage": 20,
+      "tp1Price": 0.1073,
+      "tp2Price": 0.104,
+      "slPrice": 0.11316667,
+      "closePrice": 0.1095,
+      "closeTime": "2026-02-26T16:06:54.347Z",
+      "pnl": 0.3487,
+      "pnlPercent": 3.4994229514777464,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-26T16:06:54.842Z"
+        }
+      ],
+      "roiPercent": 69.98845902955493
+    },
+    {
+      "id": "trade_1772131591960_d0j46i2hg",
+      "symbol": "RIVERUSDT",
+      "direction": "LONG",
+      "entryPrice": 11.622,
+      "entryTime": "2026-02-26T18:46:31.960Z",
+      "quantity": 0.9,
+      "leverage": 20,
+      "tp1Price": 11.8544,
+      "tp2Price": 12.2031,
+      "slPrice": 11.2346,
+      "closePrice": 11.622,
+      "closeTime": "2026-02-26T19:13:24.214Z",
+      "pnl": 0.11280000000000001,
+      "pnlPercent": 1.0784145012332933,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-02-26T19:13:24.705Z"
+        }
+      ],
+      "roiPercent": 21.568290024665867
     }
   ]
 }
