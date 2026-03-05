@@ -262,7 +262,7 @@ class DirectionValidator {
 
         // Calculate SL same way as tradingStrategy.calculateTPSL
         const tpDistance = Math.abs(entryPrice - tp2Price);
-        const slDistance = tpDistance / 1.5;
+        const slDistance = tpDistance / 1.0;
         const slPrice = signalDirection === 'LONG'
             ? entryPrice - slDistance
             : entryPrice + slDistance;

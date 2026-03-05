@@ -232,9 +232,9 @@ class TradingStrategy {
             tp2Price = signalTargets[signalTargets.length - 1]; // Use last TP as TP2
 
             // Calculate stop loss based on signal's risk profile
-            // Use 1.5x the distance to the furthest TP as stop loss distance
+            // Use TP2 distance as stop loss distance (1:1 ratio for wider SL, reduces wick stop-outs)
             const tpDistance = Math.abs(entryPrice - tp2Price);
-            const slDistance = tpDistance / 1.5; // Ensures min 1.5 R:R ratio
+            const slDistance = tpDistance / 1.0; // SL distance = TP2 distance (wider SL to avoid wick stop-hunting)
 
             if (direction === 'LONG') {
                 slPrice = entryPrice - slDistance;
@@ -533,9 +533,29 @@ class TradingStrategy {
                     // Check if this was an SL hit (position closed but not TP filled)
                     const isSLHit = !signalData.tp2Filled;
 
+                    // Determine actual close price
+                    // When SL hits, position is already gone so currentPosition is null
+                    // Fetch the actual fill price from Binance trade history
+                    let closePrice = signalData.entryPrice; // Absolute last resort fallback
+                    if (currentPosition && parseFloat(currentPosition.positionAmt) !== 0) {
+                        closePrice = parseFloat(currentPosition.markPrice);
+                    } else {
+                        // Position is gone - fetch actual close price from Binance
+                        const entryTime = new Date(signalData.signal?.entryTime || signalData.entryTime || Date.now() - 86400000).getTime();
+                        const actualClosePrice = await this.trader.fetchLastTradePrice(symbol, entryTime);
+                        if (actualClosePrice !== null) {
+                            closePrice = actualClosePrice;
+                            logger.info(`Using actual close price from Binance for ${symbol}: ${closePrice}`);
+                        } else {
+                            // Fallback to SL price if we know SL was hit
+                            closePrice = signalData.tp1Filled ? signalData.entryPrice : signalData.slPrice;
+                            logger.warn(`Could not fetch actual close price for ${symbol}, using ${signalData.tp1Filled ? 'entry' : 'SL'} price: ${closePrice}`);
+                        }
+                    }
+
                     if (this.tradeLogger) {
                         const closeData = await this.tradeLogger.logTradeClose(symbol, {
-                            closePrice: currentPosition ? parseFloat(currentPosition.markPrice) : signalData.entryPrice,
+                            closePrice: closePrice,
                             remark: signalData.tp1Filled ? 'Partial TP - Position Closed' : 'SL Hit or Manual Close'
                         });
 

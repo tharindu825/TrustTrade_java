@@ -422,6 +422,40 @@ class BinanceTrader {
     }
 
     /**
+     * Fetch the actual last trade price from Binance user trade history
+     * Used to get accurate close price when position is already closed
+     * @param {string} symbol - Trading symbol
+     * @param {number} startTime - Start timestamp in milliseconds
+     * @returns {Promise<number|null>} - Actual close price or null if not found
+     */
+    async fetchLastTradePrice(symbol, startTime) {
+        try {
+            await this.throttleApiRequest();
+
+            const trades = await this.monitoringClient.futuresUserTrades({
+                symbol,
+                startTime: startTime,
+                limit: 50
+            });
+
+            if (trades && trades.length > 0) {
+                // Get the most recent trade (last fill price)
+                const lastTrade = trades[trades.length - 1];
+                const lastPrice = parseFloat(lastTrade.price);
+                logger.info(`Fetched last trade price for ${symbol}: ${lastPrice} (${trades.length} trades found)`);
+                return lastPrice;
+            }
+
+            logger.warn(`No user trades found for ${symbol} since ${new Date(startTime).toISOString()}`);
+            return null;
+
+        } catch (error) {
+            logger.error(`Failed to fetch last trade price for ${symbol}: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
      * Place limit order
      */
     async placeLimitOrder(symbol, side, quantity, price) {
