@@ -276,7 +276,9 @@ class TelegramSignalBot {
                                 // Let the signal handler deal with this
                                 await this.signalHandler(signal);
                             } else {
-                                logger.info(`Ignoring TP signal for ${signal.coin} (profit ${signal.profit}%). Bot uses own TP1/TP2 system.`);
+                                logger.info(`Received TP signal for ${signal.coin} (profit ${signal.profit}%). Forwarding to logic to check for pending limit orders.`);
+                                // Forward to strategy to cancel pending limit orders if trade was missed
+                                await this.signalHandler(signal);
                             }
                         } else {
                             // Regular entry signal

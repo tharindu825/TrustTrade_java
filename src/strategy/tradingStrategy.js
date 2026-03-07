@@ -65,7 +65,44 @@ class TradingStrategy {
      */
     async handleSignal(signal) {
         try {
-            logger.info(`Processing signal for ${signal.coin} (${signal.direction})`);
+            logger.info(`Processing signal for ${signal.coin} (${signal.direction || 'TP Update'})`);
+
+            // Handle TP signals - cancel pending limit orders
+            if (signal.isTakeProfit) {
+                if (signal.message.includes('Closed due to opposite direction')) {
+                    // Handled by handleOppositeDirection which we might call from elsewhere,
+                    // but for safety let's return here as it's not a normal entry signal.
+                    return await this.handleOppositeDirection(signal);
+                }
+
+                // If we have an active tracking signal (limit order placed)
+                if (this.activeSignals.has(signal.coin)) {
+                    const hasPosition = await this.trader.hasSymbolPosition(signal.coin);
+                    // If no position, the limit order hasn't filled yet!
+                    if (!hasPosition) {
+                        const activeSignal = this.activeSignals.get(signal.coin);
+                        logger.warn(`🚨 DANGER: Coin ${signal.coin} reached ${signal.profit}% profit before limit order filled! Cancelling limit entry to avoid late entry trap.`);
+
+                        await this.trader.cancelOrder(signal.coin, activeSignal.entryOrderId);
+                        this.activeSignals.delete(signal.coin);
+
+                        if (this.alerts) {
+                            await this.alerts.sendAlert(
+                                `🚫 *Entry Order Cancelled*\n\n` +
+                                `Symbol: ${signal.coin}\n` +
+                                `Reason: Coin reached ${signal.profit}% profit in channel before our limit order could fill.\n` +
+                                `Action: Cancelled entry to prevent late entry trap.`,
+                                'WARNING'
+                            );
+                        }
+                    } else {
+                        logger.info(`Ignoring TP signal for ${signal.coin} (profit ${signal.profit}%). Bot already has position and uses own TP1/TP2 system.`);
+                    }
+                } else {
+                    logger.info(`Ignoring TP signal for ${signal.coin} (profit ${signal.profit}%). No active limit tracking for this coin.`);
+                }
+                return true;
+            }
 
             // Validate symbol
             const isValid = await this.trader.validateSymbol(signal.coin);
