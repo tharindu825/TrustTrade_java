@@ -551,6 +551,54 @@
         }
       ],
       "roiPercent": -64.23982869379014
+    },
+    {
+      "id": "trade_1772804117460_piuggy30b",
+      "symbol": "OPNUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.3482,
+      "entryTime": "2026-03-06T13:35:17.460Z",
+      "quantity": 29,
+      "leverage": 20,
+      "tp1Price": 0.3412,
+      "tp2Price": 0.3308,
+      "slPrice": 0.3656,
+      "closePrice": 0.3308,
+      "closeTime": "2026-03-06T13:55:50.550Z",
+      "pnl": 0.3486,
+      "pnlPercent": 3.4522371209570406,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-06T13:55:51.047Z"
+        }
+      ],
+      "roiPercent": 69.04474241914082
+    },
+    {
+      "id": "trade_1772806271121_koc8vtcfy",
+      "symbol": "SIGNUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.05002,
+      "entryTime": "2026-03-06T14:11:11.121Z",
+      "quantity": 200,
+      "leverage": 20,
+      "tp1Price": 0.05102,
+      "tp2Price": 0.05252,
+      "slPrice": 0.04752,
+      "closePrice": 0.04752,
+      "closeTime": "2026-03-06T17:47:14.213Z",
+      "pnl": -0.5000000000000004,
+      "pnlPercent": -4.998000799680133,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-03-06T17:47:14.713Z"
+        }
+      ],
+      "roiPercent": -99.96001599360265
     }
   ]
 }
