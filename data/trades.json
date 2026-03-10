@@ -1,0 +1,76 @@
+{
+  "trades": [
+    {
+      "id": "trade_1772897117529_jxm8jn74a",
+      "symbol": "RIVERUSDT",
+      "direction": "LONG",
+      "entryPrice": 17.805,
+      "entryTime": "2026-03-07T15:25:17.529Z",
+      "quantity": 0.6,
+      "leverage": 20,
+      "tp1Price": 18.1611,
+      "tp2Price": 18.6953,
+      "slPrice": 16.9147,
+      "closePrice": 16.792,
+      "closeTime": "2026-03-07T17:47:30.480Z",
+      "pnl": -0.6078,
+      "pnlPercent": -5.689413086211738,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-03-07T17:47:30.985Z"
+        }
+      ],
+      "roiPercent": -113.78826172423477
+    },
+    {
+      "id": "trade_1772984665907_m4dgpcza3",
+      "symbol": "BREVUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.1399,
+      "entryTime": "2026-03-08T15:44:25.907Z",
+      "quantity": 71,
+      "leverage": 20,
+      "tp1Price": 0.1371,
+      "tp2Price": 0.1329,
+      "slPrice": 0.1469,
+      "closePrice": 0.14,
+      "closeTime": "2026-03-08T19:41:39.158Z",
+      "pnl": 0.0973,
+      "pnlPercent": 0.9795729343897552,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-08T19:41:39.661Z"
+        }
+      ],
+      "roiPercent": 19.591458687795104
+    },
+    {
+      "id": "trade_1773054064272_3e5cis41e",
+      "symbol": "BANANAS31USDT",
+      "direction": "LONG",
+      "entryPrice": 0.007354,
+      "entryTime": "2026-03-09T11:01:04.272Z",
+      "quantity": 1360,
+      "leverage": 20,
+      "tp1Price": 0.007501,
+      "tp2Price": 0.007722,
+      "slPrice": 0.006986,
+      "closePrice": 0.00735,
+      "closeTime": "2026-03-09T16:28:17.676Z",
+      "pnl": 0.09724,
+      "pnlPercent": 0.9722599945607832,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-09T16:28:18.185Z"
+        }
+      ],
+      "roiPercent": 19.445199891215662
+    }
+  ]
+}
