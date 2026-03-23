@@ -71,6 +71,126 @@
         }
       ],
       "roiPercent": 19.445199891215662
+    },
+    {
+      "id": "trade_1773151656046_xvhw25mdg",
+      "symbol": "STBLUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.03727,
+      "entryTime": "2026-03-10T14:07:36.046Z",
+      "quantity": 268,
+      "leverage": 20,
+      "tp1Price": 0.03802,
+      "tp2Price": 0.03913,
+      "slPrice": 0.03541,
+      "closePrice": 0.0373,
+      "closeTime": "2026-03-10T17:13:59.136Z",
+      "pnl": 0.10452,
+      "pnlPercent": 1.046418030587604,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-10T17:13:59.631Z"
+        }
+      ],
+      "roiPercent": 20.92836061175208
+    },
+    {
+      "id": "trade_1773338081383_p4y4bxljw",
+      "symbol": "VELVETUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.07771,
+      "entryTime": "2026-03-12T17:54:41.383Z",
+      "quantity": 129,
+      "leverage": 20,
+      "tp1Price": 0.07616,
+      "tp2Price": 0.07382,
+      "slPrice": 0.0816,
+      "closePrice": 0.07793,
+      "closeTime": "2026-03-12T19:08:14.192Z",
+      "pnl": 0.12279,
+      "pnlPercent": 1.224888000406999,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-12T19:08:14.703Z"
+        }
+      ],
+      "roiPercent": 24.49776000813998
+    },
+    {
+      "id": "trade_1773509885884_dh62v6z4t",
+      "symbol": "BANKUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.03696,
+      "entryTime": "2026-03-14T17:38:05.884Z",
+      "quantity": 271,
+      "leverage": 20,
+      "tp1Price": 0.03622,
+      "tp2Price": 0.03511,
+      "slPrice": 0.03881,
+      "closePrice": 0.03802,
+      "closeTime": "2026-03-15T23:00:09.817Z",
+      "pnl": 0,
+      "pnlPercent": 0,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-03-15T23:00:10.011Z"
+        }
+      ],
+      "roiPercent": 0
+    },
+    {
+      "id": "trade_1773758151976_htqikmijv",
+      "symbol": "CFGUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.1592,
+      "entryTime": "2026-03-17T14:35:51.976Z",
+      "quantity": 63,
+      "leverage": 20,
+      "tp1Price": 0.156,
+      "tp2Price": 0.1512,
+      "slPrice": 0.1672,
+      "closePrice": 0.156,
+      "closeTime": "2026-03-17T19:04:17.344Z",
+      "pnl": 0.1024,
+      "pnlPercent": 1.0209779054000159,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-17T19:04:17.461Z"
+        }
+      ],
+      "roiPercent": 20.41955810800032
+    },
+    {
+      "id": "trade_1773927748248_gbtl5mtwz",
+      "symbol": "MANTAUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.06735,
+      "entryTime": "2026-03-19T13:42:28.248Z",
+      "quantity": 148.5,
+      "leverage": 20,
+      "tp1Price": 0.066,
+      "tp2Price": 0.06398,
+      "slPrice": 0.07072,
+      "closePrice": 0.06752468,
+      "closeTime": "2026-03-19T22:00:06.595Z",
+      "pnl": 0,
+      "pnlPercent": 0,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-03-19T22:00:06.839Z"
+        }
+      ],
+      "roiPercent": 0
     }
   ]
 }
