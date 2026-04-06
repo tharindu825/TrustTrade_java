@@ -1,0 +1,148 @@
+{
+  "trades": [
+    {
+      "id": "trade_1774274033981_qgw1w1lmq",
+      "symbol": "4USDT",
+      "direction": "LONG",
+      "entryPrice": 0.009697,
+      "entryTime": "2026-03-23T13:53:53.981Z",
+      "quantity": 1031,
+      "leverage": 20,
+      "tp1Price": 0.009891,
+      "tp2Price": 0.01018,
+      "slPrice": 0.009214,
+      "closePrice": 0.009676,
+      "closeTime": "2026-03-23T14:10:46.732Z",
+      "pnl": 0.09650600000000001,
+      "pnlPercent": 0.9652909941348965,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-23T14:10:47.233Z"
+        }
+      ],
+      "roiPercent": 19.305819882697932
+    },
+    {
+      "id": "trade_1774285693995_6zg4zviil",
+      "symbol": "GRIFFAINUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.009649,
+      "entryTime": "2026-03-23T17:08:13.996Z",
+      "quantity": 1036,
+      "leverage": 20,
+      "tp1Price": 0.009842,
+      "tp2Price": 0.01013,
+      "slPrice": 0.009168,
+      "closePrice": 0.01013,
+      "closeTime": "2026-03-24T07:55:48.587Z",
+      "pnl": 0.349132,
+      "pnlPercent": 3.4925899056897087,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-24T07:55:49.091Z"
+        }
+      ],
+      "roiPercent": 69.85179811379417
+    },
+    {
+      "id": "trade_1774340815605_xclpr5xua",
+      "symbol": "SPORTFUNUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.03553,
+      "entryTime": "2026-03-24T08:26:55.605Z",
+      "quantity": 281,
+      "leverage": 20,
+      "tp1Price": 0.03624,
+      "tp2Price": 0.03731,
+      "slPrice": 0.03375,
+      "closePrice": 0.03553,
+      "closeTime": "2026-03-24T12:02:28.843Z",
+      "pnl": 0.10011,
+      "pnlPercent": 1.0027113571509416,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-24T12:02:29.339Z"
+        }
+      ],
+      "roiPercent": 20.054227143018835
+    },
+    {
+      "id": "trade_1774455050281_4g60deo6s",
+      "symbol": "MBOXUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.01671,
+      "entryTime": "2026-03-25T16:10:50.281Z",
+      "quantity": 598,
+      "leverage": 20,
+      "tp1Price": 0.01705,
+      "tp2Price": 0.01755,
+      "slPrice": 0.01587,
+      "closePrice": 0.01583,
+      "closeTime": "2026-03-26T05:28:34.599Z",
+      "pnl": -0.521,
+      "pnlPercent": -5.213868690568402,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-03-26T05:28:35.099Z"
+        }
+      ],
+      "roiPercent": -104.27737381136804
+    },
+    {
+      "id": "trade_1774621994875_h8oo05ep9",
+      "symbol": "CETUSUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.02492,
+      "entryTime": "2026-03-27T14:33:14.875Z",
+      "quantity": 401,
+      "leverage": 20,
+      "tp1Price": 0.02542,
+      "tp2Price": 0.02617,
+      "slPrice": 0.02367,
+      "closePrice": 0.02617,
+      "closeTime": "2026-03-27T15:23:47.768Z",
+      "pnl": 0.35050000000000003,
+      "pnlPercent": 3.5074832981751083,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-27T15:23:48.260Z"
+        }
+      ],
+      "roiPercent": 70.14966596350217
+    },
+    {
+      "id": "trade_1774729675034_upivuw6f3",
+      "symbol": "FIGHTUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.002705,
+      "entryTime": "2026-03-28T20:27:55.034Z",
+      "quantity": 3697,
+      "leverage": 20,
+      "tp1Price": 0.002651,
+      "tp2Price": 0.00257,
+      "slPrice": 0.00284,
+      "closePrice": 0.002715,
+      "closeTime": "2026-03-29T00:05:38.377Z",
+      "pnl": 0.08136600000000001,
+      "pnlPercent": 0.8136286752960011,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-03-29T00:05:38.879Z"
+        }
+      ],
+      "roiPercent": 16.272573505920025
+    }
+  ]
+}
