@@ -16,6 +16,14 @@ class TradingStrategy {
         this.tpPercentage = parseFloat(config.TP_PERCENTAGE || 3.0);
         this.slPercentage = parseFloat(config.SL_PERCENTAGE || 1.5);
 
+        // TP ROI levels (used when signal does not supply TP targets)
+        this.tp1Roi = parseFloat(config.TP1_ROI || 0.4);  // e.g. 0.4 = 40% ROI at leverage
+        this.tp2Roi = parseFloat(config.TP2_ROI || 1.0);  // e.g. 1.0 = 100% ROI at leverage
+
+        // Leverage from env (signal leverage is always ignored)
+        this.defaultLeverage = parseInt(config.DEFAULT_LEVERAGE || 10);
+        this.maxLeverageCap  = parseInt(config.MAX_LEVERAGE || 15);
+
         // Margin type configuration
         this.marginType = (config.MARGIN_TYPE || 'CROSSED').toUpperCase();
 
@@ -179,12 +187,12 @@ class TradingStrategy {
      */
     async executeLimitEntry(signal) {
         try {
-            const { coin, direction, entryPrices, leverage } = signal;
+            const { coin, direction, entryPrices } = signal;
             const entryPrice = entryPrices[0];
 
-            // Parse leverage
-            const leverageValue = parseInt(leverage.replace('X', ''));
-            const finalLeverage = Math.min(leverageValue, this.trader.maxLeverage);
+            // Always use env-configured leverage — signal leverage is ignored
+            const finalLeverage = Math.min(this.defaultLeverage, this.maxLeverageCap);
+            logger.info(`Using env leverage: ${finalLeverage}x (DEFAULT_LEVERAGE=${this.defaultLeverage}, MAX_LEVERAGE=${this.maxLeverageCap})`);
 
             // Set leverage and margin type
             await this.trader.setLeverage(coin, finalLeverage);
@@ -197,12 +205,15 @@ class TradingStrategy {
                 return false;
             }
 
-            // Calculate TP and SL prices (use signal targets if available)
+            // Calculate TP and SL prices
+            // signal.stopLoss  → explicit SL from channel (new format)  — used if present
+            // signal.targets   → always [] now; env TP1_ROI/TP2_ROI are used instead
             const { tp1Price, tp2Price, slPrice } = this.calculateTPSL(
                 entryPrice,
                 direction,
                 finalLeverage,
-                signal.targets
+                signal.targets,
+                signal.stopLoss   // may be null for old-format signals
             );
 
             // R:R is now validated in the direction validator's slot system
@@ -260,49 +271,60 @@ class TradingStrategy {
      * Calculate TP and SL prices
      * Uses signal targets if provided, otherwise falls back to ROI-based calculation
      */
-    calculateTPSL(entryPrice, direction, leverage, signalTargets = []) {
+    /**
+     * Calculate TP and SL prices.
+     *
+     * Priority:
+     *   SL  → signal.stopLoss (new format) → SL_PERCENTAGE env fallback
+     *   TP  → always from TP1_ROI / TP2_ROI env (signal targets are ignored)
+     *
+     * @param {number}      entryPrice     - Averaged limit-order entry price
+     * @param {string}      direction      - 'LONG' | 'SHORT'
+     * @param {number}      leverage       - Effective leverage (from env)
+     * @param {number[]}    signalTargets  - Signal TP levels (ignored — kept for API compat)
+     * @param {number|null} signalStopLoss - Explicit SL from signal (null → use SL_PERCENTAGE)
+     */
+    calculateTPSL(entryPrice, direction, leverage, signalTargets = [], signalStopLoss = null) {
         let tp1Price, tp2Price, slPrice;
 
-        // Use signal targets if available
-        if (signalTargets && signalTargets.length >= 2) {
-            tp1Price = signalTargets[0];
-            tp2Price = signalTargets[signalTargets.length - 1]; // Use last TP as TP2
+        // ── Take-Profit: always env-based ROI ─────────────────────────────
+        // TP1_ROI and TP2_ROI are percentages of ROI at the given leverage.
+        // Price change = (entry * ROI%) / leverage
+        const tp1PriceChange = (entryPrice * this.tp1Roi) / leverage;
+        const tp2PriceChange = (entryPrice * this.tp2Roi) / leverage;
 
-            // Calculate stop loss based on signal's risk profile
-            // Use TP2 distance as stop loss distance (1:1 ratio for wider SL, reduces wick stop-outs)
-            const tpDistance = Math.abs(entryPrice - tp2Price);
-            const slDistance = tpDistance / 1.0; // SL distance = TP2 distance (wider SL to avoid wick stop-hunting)
-
-            if (direction === 'LONG') {
-                slPrice = entryPrice - slDistance;
-            } else {
-                slPrice = entryPrice + slDistance;
-            }
-
-            logger.info(`Using signal TPs: TP1=${tp1Price}, TP2=${tp2Price}, calculated SL=${slPrice.toFixed(8)}`);
+        if (direction === 'LONG') {
+            tp1Price = entryPrice + tp1PriceChange;
+            tp2Price = entryPrice + tp2PriceChange;
         } else {
-            // Fallback to ROI-based calculation
-            const tp1PriceChange = (entryPrice * this.tp1Roi / 100) / leverage;
-            const tp2PriceChange = (entryPrice * this.tp2Roi / 100) / leverage;
-            const slPriceChange = entryPrice * this.slPercentage;
+            tp1Price = entryPrice - tp1PriceChange;
+            tp2Price = entryPrice - tp2PriceChange;
+        }
 
+        logger.info(
+            `TP (env ROI-based): TP1=${tp1Price.toFixed(8)} (ROI ${this.tp1Roi}%), ` +
+            `TP2=${tp2Price.toFixed(8)} (ROI ${this.tp2Roi}%) at ${leverage}x`
+        );
+
+        // ── Stop-Loss: use signal SL if provided, else percentage-based ───
+        if (signalStopLoss !== null && signalStopLoss > 0) {
+            slPrice = signalStopLoss;
+            logger.info(`SL from signal: ${slPrice}`);
+        } else {
+            // Fallback: SL_PERCENTAGE applied to entry price
+            const slPriceChange = entryPrice * (this.slPercentage / 100);
             if (direction === 'LONG') {
-                tp1Price = entryPrice + tp1PriceChange;
-                tp2Price = entryPrice + tp2PriceChange;
                 slPrice = entryPrice - slPriceChange;
             } else {
-                tp1Price = entryPrice - tp1PriceChange;
-                tp2Price = entryPrice - tp2PriceChange;
                 slPrice = entryPrice + slPriceChange;
             }
-
-            logger.info(`Using ROI-based TPs: TP1=${tp1Price}, TP2=${tp2Price}, SL=${slPrice}`);
+            logger.info(`SL from env SL_PERCENTAGE (${this.slPercentage}%): ${slPrice.toFixed(8)}`);
         }
 
         return {
             tp1Price: parseFloat(tp1Price.toFixed(8)),
             tp2Price: parseFloat(tp2Price.toFixed(8)),
-            slPrice: parseFloat(slPrice.toFixed(8))
+            slPrice:  parseFloat(slPrice.toFixed(8))
         };
     }
 
