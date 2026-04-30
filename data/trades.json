@@ -143,6 +143,30 @@
         }
       ],
       "roiPercent": 16.272573505920025
+    },
+    {
+      "id": "trade_1777047888150_v37vqst50",
+      "symbol": "ICPUSDT",
+      "direction": "SHORT",
+      "entryPrice": 2.456,
+      "entryTime": "2026-04-24T16:24:48.150Z",
+      "quantity": 3,
+      "leverage": 15,
+      "tp1Price": 2.39050667,
+      "tp2Price": 2.29226667,
+      "slPrice": 2.538,
+      "closePrice": 2.456,
+      "closeTime": "2026-04-29T04:46:33.453Z",
+      "pnl": 0.13,
+      "pnlPercent": 1.7643865363735072,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "Partial TP - Position Closed",
+          "timestamp": "2026-04-29T04:46:33.956Z"
+        }
+      ],
+      "roiPercent": 26.465798045602607
     }
   ]
 }
