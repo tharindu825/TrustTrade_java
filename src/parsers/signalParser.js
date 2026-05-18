@@ -30,22 +30,27 @@ class TelegramSignalParser {
             // e.g.  "SCALP TRADE - ENS"  or  "SCALP TRADE- ENSUSDT"
             header:    /SCALP\s+TRADE\s*[-–]\s*([A-Z0-9]+)/i,
 
-            // e.g.  "ENTRY - 6.22$ TO 6.44$"  or  "ENTRY - $6.22 TO $6.44"
-            entry:     /ENTRY\s*[-–]\s*\$?\s*([0-9.]+)\s*\$?\s*TO\s*\$?\s*([0-9.]+)\s*\$?/i,
+            // Entry range — supports both separators:
+            //   Old:  "ENTRY - 6.22$ TO 6.44$"   or  "ENTRY - $6.22 TO $6.44"
+            //   New:  "ENTRY - $0.188 - $0.19"   (hyphen as range separator)
+            entry: /ENTRY\s*[-–]\s*\$?\s*([0-9.]+)\s*\$?\s*(?:TO|[-–])\s*\$?\s*([0-9.]+)\s*\$?/i,
 
-            // e.g.  "DIRECTION - SHORT"
-            direction: /DIRECTION\s*[-–]\s*(LONG|SHORT|BUY|SELL)/i,
+            // Direction — supports both keywords:
+            //   Old:  "DIRECTION - SHORT"
+            //   New:  "TYPE - SHORT"
+            direction: /(?:DIRECTION|TYPE)\s*[-–]\s*(LONG|SHORT|BUY|SELL)/i,
 
-            // e.g.  "TARGET - $6.20$ 6.12$ 6.02$ $5.90 5.871$"
+            // e.g.  "TARGET - $6.20$ 6.12$ ..."  or  "TARGET - $0.186, $0.184 & $0.177+"
+            // _extractNumbers() will strip $, commas, &, + automatically
             target:    /TARGET\s*[-–]\s*(.*)/i,
 
-            // e.g.  "SL - $6.56"  or  "SL - 6.56$"
+            // e.g.  "SL - $6.56"  or  "SL - 6.56$"  or  "SL - $0.199"
             sl:        /SL\s*[-–]\s*\$?\s*([0-9.]+)\s*\$?/i,
 
-            // e.g.  "LEVERAGE - 10x"  or  "LEVERAGE - 10X"
+            // e.g.  "LEVERAGE - 10x"  or  "LEVERAGE - 20X"
             leverage:  /LEVERAGE\s*[-–]\s*([0-9]+)\s*[xX]/i,
 
-            // e.g.  "Trader - ORANGE"
+            // e.g.  "Trader - ORANGE"  or  "Trader - Apple"
             trader:    /Trader\s*[-–]\s*(\w+)/i
         };
 
