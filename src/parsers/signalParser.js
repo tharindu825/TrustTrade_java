@@ -5,7 +5,7 @@ import logger from '../utils/logger.js';
  *
  * Supports the following signal formats:
  *
- * Format 1 - SCALP TRADE (new):
+ * Format 1 - SCALP TRADE (primary):
  * ✅ SCALP TRADE - ENS
  * 👉 ENTRY - 6.22$ TO 6.44$
  * 👉 DIRECTION - SHORT
@@ -26,7 +26,6 @@ import logger from '../utils/logger.js';
 class TelegramSignalParser {
     constructor() {
         // ── Format 1: SCALP TRADE ────────────────────────────────────────────────
-        // Header:  "SCALP TRADE - ENS"  (after stripping emoji / extra spaces)
         this.scalpPatterns = {
             // e.g.  "SCALP TRADE - ENS"  or  "SCALP TRADE- ENSUSDT"
             header:    /SCALP\s+TRADE\s*[-–]\s*([A-Z0-9]+)/i,
@@ -38,7 +37,6 @@ class TelegramSignalParser {
             direction: /DIRECTION\s*[-–]\s*(LONG|SHORT|BUY|SELL)/i,
 
             // e.g.  "TARGET - $6.20$ 6.12$ 6.02$ $5.90 5.871$"
-            // Captures all bare numbers that appear after "TARGET -"
             target:    /TARGET\s*[-–]\s*(.*)/i,
 
             // e.g.  "SL - $6.56"  or  "SL - 6.56$"
@@ -79,7 +77,8 @@ class TelegramSignalParser {
             '📌': '', '⭕️': '', '📈': '', '📉': '', '✴️': '', '⚠️': '',
             '🟢': '', '🔴': '', '⭐': '', '🚀': '', '💠': '',
             '🇱🇰': '', '🔥': '', '🔔': '', '✅': '', '⏰': '', '⚠': '',
-            '👉': '', '🎰': '', '🎯': '', '💰': '', '📊': '', '🛑': ''
+            '👉': '', '🎰': '', '🎯': '', '💰': '', '📊': '', '🛑': '',
+            '⚡': '', '❌': ''
         };
 
         let normalized = text;
@@ -98,7 +97,6 @@ class TelegramSignalParser {
      */
     _extractNumbers(str) {
         const nums = [];
-        // Match sequences of digits / dots not preceded/followed by letters
         const regex = /\b([0-9]+(?:\.[0-9]+)?)\b/g;
         let m;
         while ((m = regex.exec(str)) !== null) {
@@ -106,6 +104,29 @@ class TelegramSignalParser {
             if (!isNaN(val)) nums.push(val);
         }
         return nums;
+    }
+
+    /**
+     * Validate that the stop-loss price makes sense for the given direction.
+     *   SHORT → SL must be ABOVE entry
+     *   LONG  → SL must be BELOW entry
+     */
+    _validateStopLossDirection(direction, entryPrice, slPrice) {
+        if (direction === 'SHORT' && slPrice <= entryPrice) {
+            logger.warn(
+                `⚠️ SL direction mismatch: SHORT trade but SL (${slPrice}) is NOT above entry (${entryPrice}). ` +
+                `Signal may be malformed.`
+            );
+            return false;
+        }
+        if (direction === 'LONG' && slPrice >= entryPrice) {
+            logger.warn(
+                `⚠️ SL direction mismatch: LONG trade but SL (${slPrice}) is NOT below entry (${entryPrice}). ` +
+                `Signal may be malformed.`
+            );
+            return false;
+        }
+        return true;
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -118,7 +139,7 @@ class TelegramSignalParser {
     parseMessage(text, timestamp = Date.now()) {
         try {
             const normalizedText = this._normalizeText(text);
-            logger.info(`Parsing message (${text.length} chars): ${normalizedText.substring(0, 300)}...`);
+            logger.info(`Parsing message (${text.length} chars): ${normalizedText.substring(0, 200)}...`);
 
             // ── Try Format 1: SCALP TRADE ────────────────────────────────────────
             const scalpResult = this._parseScalpFormat(normalizedText, text, timestamp);
@@ -199,6 +220,12 @@ class TelegramSignalParser {
         const slMatch = normalizedText.match(this.scalpPatterns.sl);
         const stopLoss = slMatch ? parseFloat(slMatch[1]) : null;
 
+        // Validate SL direction
+        if (stopLoss !== null) {
+            const entryRef = direction === 'LONG' ? Math.min(...entryPrices) : Math.max(...entryPrices);
+            this._validateStopLossDirection(direction, entryRef, stopLoss);
+        }
+
         // ── Leverage ─────────────────────────────────────────────────────────────
         const leverageMatch = normalizedText.match(this.scalpPatterns.leverage);
         const leverage = leverageMatch
@@ -217,14 +244,13 @@ class TelegramSignalParser {
         return {
             coin,
             direction,
-            // Use the lower entry price as the limit-order price (conservative entry)
             entryPrices,
             entryRange: {
                 low:  Math.min(...entryPrices),
                 high: Math.max(...entryPrices)
             },
             targets,
-            stopLoss,   // explicit SL from signal
+            stopLoss,
             leverage,
             traderName,
             signalType: 'SCALP',
@@ -242,8 +268,8 @@ class TelegramSignalParser {
         const signalHeaderMatch = normalizedText.match(this.newPatterns.signalHeader);
         if (!signalHeaderMatch) return null;
 
-        const symbolName   = signalHeaderMatch[1].toUpperCase();
-        const directionStr = signalHeaderMatch[2].toUpperCase();
+        const symbolName    = signalHeaderMatch[1].toUpperCase();
+        const directionStr  = signalHeaderMatch[2].toUpperCase();
         const leverageValue = signalHeaderMatch[3];
 
         const coin      = `${symbolName}USDT`;
@@ -257,7 +283,7 @@ class TelegramSignalParser {
         if (entryPrice) {
             // TP levels
             const tpMatches = [...normalizedText.matchAll(this.newPatterns.tpLevels)];
-            const targets = tpMatches
+            const targets   = tpMatches
                 .map(m => parseFloat(m[1]))
                 .filter(p => !isNaN(p));
 
@@ -286,7 +312,7 @@ class TelegramSignalParser {
         const tpProfitMatch = normalizedText.match(this.newPatterns.tpProfit);
 
         if (tpPriceMatch && tpProfitMatch) {
-            const tpPrice      = parseFloat(tpPriceMatch[1]);
+            const tpPrice       = parseFloat(tpPriceMatch[1]);
             const profitPercent = parseFloat(tpProfitMatch[1]);
 
             logger.info(`[LEGACY TP] ${coin} | Price: ${tpPrice} | Profit: ${profitPercent}%`);
