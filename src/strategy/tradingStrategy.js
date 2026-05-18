@@ -180,7 +180,19 @@ class TradingStrategy {
     async executeLimitEntry(signal) {
         try {
             const { coin, direction, entryPrices, leverage } = signal;
-            const entryPrice = entryPrices[0];
+
+            // For SCALP signals with an entry range, choose the conservative limit price:
+            //   LONG  → buy at the lower end of the range (wait for a dip)
+            //   SHORT → sell at the higher end of the range (wait for a bounce)
+            let entryPrice;
+            if (entryPrices.length >= 2) {
+                entryPrice = direction === 'LONG'
+                    ? Math.min(...entryPrices)
+                    : Math.max(...entryPrices);
+                logger.info(`Entry range [${entryPrices.join(', ')}] → conservative limit price: ${entryPrice}`);
+            } else {
+                entryPrice = entryPrices[0];
+            }
 
             // Parse leverage
             const leverageValue = parseInt(leverage.replace('X', ''));
@@ -197,12 +209,14 @@ class TradingStrategy {
                 return false;
             }
 
-            // Calculate TP and SL prices (use signal targets if available)
+            // Calculate TP and SL prices
+            // Pass signal.stopLoss so the explicit SL from the signal is used when available
             const { tp1Price, tp2Price, slPrice } = this.calculateTPSL(
                 entryPrice,
                 direction,
                 finalLeverage,
-                signal.targets
+                signal.targets,
+                signal.stopLoss   // explicit SL from SCALP format
             );
 
             // R:R is now validated in the direction validator's slot system
@@ -260,49 +274,81 @@ class TradingStrategy {
      * Calculate TP and SL prices
      * Uses signal targets if provided, otherwise falls back to ROI-based calculation
      */
-    calculateTPSL(entryPrice, direction, leverage, signalTargets = []) {
+    /**
+     * Calculate TP and SL prices.
+     *
+     * Priority order for SL:
+     *   1. Explicit SL from signal (SCALP format provides this)
+     *   2. Derived from TP2 distance (legacy fallback)
+     *   3. ROI-based calculation (old format fallback)
+     *
+     * Priority order for TPs:
+     *   1. Signal targets array
+     *   2. ROI-based calculation
+     */
+    calculateTPSL(entryPrice, direction, leverage, signalTargets = [], explicitSL = null) {
         let tp1Price, tp2Price, slPrice;
 
-        // Use signal targets if available
+        // ── Determine Stop Loss ──────────────────────────────────────────────────
+        if (explicitSL !== null && !isNaN(explicitSL)) {
+            // Priority 1: explicit SL provided by signal (SCALP format)
+            slPrice = explicitSL;
+            logger.info(`Using explicit SL from signal: ${slPrice}`);
+        }
+
+        // ── Determine Take Profits ───────────────────────────────────────────────
         if (signalTargets && signalTargets.length >= 2) {
             tp1Price = signalTargets[0];
-            tp2Price = signalTargets[signalTargets.length - 1]; // Use last TP as TP2
+            tp2Price = signalTargets[signalTargets.length - 1]; // last TP as TP2
 
-            // Calculate stop loss based on signal's risk profile
-            // Use TP2 distance as stop loss distance (1:1 ratio for wider SL, reduces wick stop-outs)
-            const tpDistance = Math.abs(entryPrice - tp2Price);
-            const slDistance = tpDistance / 1.0; // SL distance = TP2 distance (wider SL to avoid wick stop-hunting)
-
-            if (direction === 'LONG') {
-                slPrice = entryPrice - slDistance;
-            } else {
-                slPrice = entryPrice + slDistance;
+            if (slPrice === undefined) {
+                // Priority 2: derive SL from TP2 distance
+                const tpDistance = Math.abs(entryPrice - tp2Price);
+                slPrice = direction === 'LONG'
+                    ? entryPrice - tpDistance
+                    : entryPrice + tpDistance;
+                logger.info(`Derived SL from TP2 distance: ${slPrice.toFixed(8)}`);
             }
 
-            logger.info(`Using signal TPs: TP1=${tp1Price}, TP2=${tp2Price}, calculated SL=${slPrice.toFixed(8)}`);
+            logger.info(`Using signal TPs: TP1=${tp1Price}, TP2=${tp2Price}, SL=${slPrice}`);
+        } else if (signalTargets && signalTargets.length === 1) {
+            // Only one target: use it as TP1, derive TP2 and SL from percentages
+            tp1Price = signalTargets[0];
+            const tp1Distance = Math.abs(entryPrice - tp1Price);
+            tp2Price = direction === 'LONG'
+                ? entryPrice + tp1Distance * 2
+                : entryPrice - tp1Distance * 2;
+
+            if (slPrice === undefined) {
+                slPrice = direction === 'LONG'
+                    ? entryPrice - tp1Distance
+                    : entryPrice + tp1Distance;
+            }
+
+            logger.info(`Single target – TP1=${tp1Price}, derived TP2=${tp2Price.toFixed(8)}, SL=${slPrice}`);
         } else {
-            // Fallback to ROI-based calculation
+            // Priority 3: ROI-based calculation
             const tp1PriceChange = (entryPrice * this.tp1Roi / 100) / leverage;
             const tp2PriceChange = (entryPrice * this.tp2Roi / 100) / leverage;
-            const slPriceChange = entryPrice * this.slPercentage;
+            const slPriceChange  = entryPrice * this.slPercentage;
 
             if (direction === 'LONG') {
                 tp1Price = entryPrice + tp1PriceChange;
                 tp2Price = entryPrice + tp2PriceChange;
-                slPrice = entryPrice - slPriceChange;
+                if (slPrice === undefined) slPrice = entryPrice - slPriceChange;
             } else {
                 tp1Price = entryPrice - tp1PriceChange;
                 tp2Price = entryPrice - tp2PriceChange;
-                slPrice = entryPrice + slPriceChange;
+                if (slPrice === undefined) slPrice = entryPrice + slPriceChange;
             }
 
-            logger.info(`Using ROI-based TPs: TP1=${tp1Price}, TP2=${tp2Price}, SL=${slPrice}`);
+            logger.info(`ROI-based TPs: TP1=${tp1Price}, TP2=${tp2Price}, SL=${slPrice}`);
         }
 
         return {
             tp1Price: parseFloat(tp1Price.toFixed(8)),
             tp2Price: parseFloat(tp2Price.toFixed(8)),
-            slPrice: parseFloat(slPrice.toFixed(8))
+            slPrice:  parseFloat(slPrice.toFixed(8))
         };
     }
 

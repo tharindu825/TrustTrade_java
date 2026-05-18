@@ -7,7 +7,7 @@ A professional cryptocurrency trading bot that reads signals from Telegram chann
 ### Core Functionality
 - ✅ **Telegram Signal Reading** - Automatically reads and parses trading signals from Telegram channels
 - ✅ **Binance Futures Trading** - Executes trades on Binance Futures with full automation
-- ✅ **Multiple Signal Formats** - Supports both new and legacy signal formats
+- ✅ **Multiple Signal Formats** - Supports SCALP TRADE, legacy, and old signal formats
 - ✅ **Limit & Market Orders** - Handles both limit entry orders and market orders
 - ✅ **Automated TP/SL** - Automatically places Take Profit and Stop Loss orders
 - ✅ **Position Management** - Tracks and manages multiple positions simultaneously
@@ -135,20 +135,67 @@ Telegram Channel → Signal Parser → Validation → Binance Order → Monitori
 
 ### 1. Signal Detection
 
-The bot listens to your configured Telegram channel and parses messages like:
+The bot listens to your configured Telegram channel and supports **3 signal formats**:
+
+---
+
+#### 📌 Format 1 — SCALP TRADE (Primary)
 
 ```
-🔥#BTC/USDT (Long📈, x20)🔥
-Entry - 45000
+✅ SCALP TRADE - ENS
+👉 ENTRY - 6.22$ TO 6.44$
+👉 DIRECTION - SHORT
+👉 TARGET - $6.20$ 6.12$ 6.02$ $5.90 5.871$
+👉 SL - $6.56
+🎰 LEVERAGE - 10x
+Trader - ORANGE
 ```
+
+| Field | Extracted Value |
+|---|---|
+| Coin | `ENS` → `ENSUSDT` |
+| Entry Range | `[6.22, 6.44]` |
+| Direction | `SHORT` |
+| Targets (TP levels) | `[6.20, 6.12, 6.02, 5.90, 5.871]` |
+| Stop Loss | `6.56` (used directly — no calculation needed) |
+| Leverage | `10X` |
+| Trader | `ORANGE` (informational only) |
+
+**Entry price selection from range:**
+- `SHORT` → limit sell at **`6.44`** (higher end — wait for bounce)
+- `LONG` → limit buy at **`6.22`** (lower end — wait for dip)
+
+---
+
+#### 📌 Format 2 — Legacy (`#COIN/USDT` header)
+
+```
+🔥#BEAT/USDT (Short📉, x20)🔥
+Entry - 0.00123
+0.00120 (10% of profit)
+0.00110 (20% of profit)
+```
+
+---
+
+#### 📌 Format 3 — Old format
+
+```
+Coin pair: BTCUSDT
+Order: buy
+```
+
+---
 
 ### 2. Signal Parsing
 
-Extracts:
-- **Symbol**: BTCUSDT
-- **Direction**: LONG or SHORT
-- **Entry Price**: 45000
-- **Leverage**: 20x
+Extracts from each signal:
+- **Symbol** — coin name, auto-appended with `USDT`
+- **Direction** — `LONG` or `SHORT`
+- **Entry Prices** — single price or range `[low, high]`
+- **Targets** — all TP levels (TP1 = first, TP2 = last)
+- **Stop Loss** — explicit from signal (Format 1) or calculated from TP distance
+- **Leverage** — from signal or `DEFAULT_LEVERAGE` fallback
 
 ### 3. Validation
 
@@ -162,17 +209,25 @@ Checks:
 ### 4. Order Execution
 
 Places:
-1. **Limit Entry Order** at specified price
+1. **Limit Entry Order** — at the conservative end of the entry range:
+   - `LONG` → lower price (buy the dip)
+   - `SHORT` → higher price (sell the bounce)
 2. Monitors for fill
 3. Once filled, places:
-   - **TP1 Order** (50% position at TP1 price)
-   - **TP2 Order** (50% position at TP2 price)
-   - **SL Order** (full position at SL price)
+   - **TP1 Order** (50% position at first target price)
+   - **TP2 Order** (50% position at last target price)
+   - **SL Order** (full position — uses explicit SL from signal if provided)
+
+**SL Priority:**
+1. Explicit SL from signal (Format 1 SCALP TRADE)
+2. Derived from TP2 distance (legacy fallback)
+3. ROI-based percentage calculation (old format fallback)
 
 ### 5. Position Management
 
-- Monitors order fills
-- Cancels orders on timeout
+- Monitors order fills every 10 seconds
+- When TP1 fills → SL automatically moves to breakeven (entry price)
+- Cancels entry orders on 1-hour timeout
 - Handles opposite direction signals
 - Tracks PNL in real-time
 
