@@ -68,6 +68,16 @@ class TelegramSignalParser {
             coin:      /Coin pair:\s*([A-Z0-9]+)/i,
             direction: /Order:\s*(buy|sell)/i
         };
+
+        // ── Format 4: VVIP "Pairs: TRX/USDT" ─────────────────────────────────────
+        this.vvipPatterns = {
+            header:    /Pairs:\s*([A-Z0-9]+(?:\/[A-Z0-9]+)?)/i,
+            direction: /Trade\s*Type\s*=\s*(LONG|SHORT|BUY|SELL)/i,
+            leverage:  /Leverage\s*[:-]+\s*([0-9]+)\s*[xX]/i,
+            entry:     /Entry\s*=?\s*\[?\s*([0-9.]+)\s*(?:TO|[-–])\s*([0-9.]+)\s*\]?/i,
+            sl:        /StopLoss\s*[:-]+\s*([0-9.]+)/i,
+            target:    /Take\s*profit\s*=?\s*\[?(.*)/i
+        };
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -153,6 +163,10 @@ class TelegramSignalParser {
             // ── Try Format 2: #COIN/USDT header ─────────────────────────────────
             const legacyResult = this._parseLegacyFormat(normalizedText, text, timestamp);
             if (legacyResult) return legacyResult;
+
+            // ── Try Format 4: VVIP "Pairs: TRX/USDT" ─────────────────────────────
+            const vvipResult = this._parseVvipFormat(normalizedText, text, timestamp);
+            if (vvipResult) return vvipResult;
 
             // ── Try Format 3: Very old ───────────────────────────────────────────
             const oldResult = this._parseOldFormat(normalizedText, text, timestamp);
@@ -367,6 +381,97 @@ class TelegramSignalParser {
             stopLoss: null,
             leverage: `${process.env.DEFAULT_LEVERAGE || 20}X`,
             signalType: 'OLD',
+            isTakeProfit: false,
+            profit: 0.0,
+            timestamp,
+            message: rawText
+        };
+    }
+
+    /**
+     * Parse Format 4 – VVIP signals.
+     *
+     * Example:
+     *   Pairs: TRX/USDT
+     *   👉 Trade Type = LONG 🟢
+     *   👉 Leverage :- 20x
+     *   ⚡️ Entry = [ 0.3563 TO 0.3554 ]
+     *   ❌ StopLoss :- 0.3439
+     *   ✅ Take profit = [ 0.3618, 0.3667, 0.3691, 0.3743, 0.3809, 0.3869 ]
+     *   Always Win VVIP
+     */
+    _parseVvipFormat(normalizedText, rawText, timestamp) {
+        const headerMatch = normalizedText.match(this.vvipPatterns.header);
+        if (!headerMatch) return null;
+
+        let symbolName = headerMatch[1].toUpperCase().replace('/', '');
+        const coin = symbolName.endsWith('USDT') ? symbolName : `${symbolName}USDT`;
+
+        // ── Direction ────────────────────────────────────────────────────────────
+        const directionMatch = normalizedText.match(this.vvipPatterns.direction);
+        if (!directionMatch) {
+            logger.warn(`VVIP format detected for ${coin} but no Trade Type found`);
+            return null;
+        }
+        const directionRaw = directionMatch[1].toUpperCase();
+        const direction = (directionRaw === 'LONG' || directionRaw === 'BUY') ? 'LONG' : 'SHORT';
+
+        // ── Entry prices (range) ─────────────────────────────────────────────────
+        const entryMatch = normalizedText.match(this.vvipPatterns.entry);
+        let entryPrices = [];
+        if (entryMatch) {
+            const low  = parseFloat(entryMatch[1]);
+            const high = parseFloat(entryMatch[2]);
+            if (!isNaN(low))  entryPrices.push(low);
+            if (!isNaN(high) && high !== low) entryPrices.push(high);
+        }
+
+        if (entryPrices.length === 0) {
+            logger.warn(`VVIP format detected for ${coin} but no ENTRY prices found`);
+            return null;
+        }
+
+        // ── Targets ──────────────────────────────────────────────────────────────
+        const targetMatch = normalizedText.match(this.vvipPatterns.target);
+        let targets = [];
+        if (targetMatch) {
+            targets = this._extractNumbers(targetMatch[1]);
+        }
+
+        // ── Stop Loss ────────────────────────────────────────────────────────────
+        const slMatch = normalizedText.match(this.vvipPatterns.sl);
+        const stopLoss = slMatch ? parseFloat(slMatch[1]) : null;
+
+        // Validate SL direction
+        if (stopLoss !== null) {
+            const entryRef = direction === 'LONG' ? Math.min(...entryPrices) : Math.max(...entryPrices);
+            this._validateStopLossDirection(direction, entryRef, stopLoss);
+        }
+
+        // ── Leverage ─────────────────────────────────────────────────────────────
+        const leverageMatch = normalizedText.match(this.vvipPatterns.leverage);
+        const leverage = leverageMatch
+            ? `${leverageMatch[1]}X`
+            : `${process.env.DEFAULT_LEVERAGE || 20}X`;
+
+        logger.info(
+            `[VVIP] ${coin} | ${direction} | Entry: [${entryPrices.join(', ')}] | ` +
+            `Targets: [${targets.join(', ')}] | SL: ${stopLoss} | Leverage: ${leverage}`
+        );
+
+        return {
+            coin,
+            direction,
+            entryPrices,
+            entryRange: {
+                low:  Math.min(...entryPrices),
+                high: Math.max(...entryPrices)
+            },
+            targets,
+            stopLoss,
+            leverage,
+            traderName: 'Always Win VVIP',
+            signalType: 'VVIP',
             isTakeProfit: false,
             profit: 0.0,
             timestamp,
