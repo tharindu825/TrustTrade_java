@@ -260,12 +260,16 @@ class DirectionValidator {
         const tp1Price = signal.targets[0];
         const tp2Price = signal.targets[signal.targets.length - 1];
 
-        // Calculate SL same way as tradingStrategy.calculateTPSL
-        const tpDistance = Math.abs(entryPrice - tp2Price);
-        const slDistance = tpDistance / 1.0;
-        const slPrice = signalDirection === 'LONG'
-            ? entryPrice - slDistance
-            : entryPrice + slDistance;
+        // Use signal's explicit SL if available, otherwise derive from TP2 distance
+        let slPrice;
+        if (signal.stopLoss !== null && signal.stopLoss !== undefined && !isNaN(signal.stopLoss) && signal.stopLoss > 0) {
+            slPrice = signal.stopLoss;
+        } else {
+            const tpDistance = Math.abs(entryPrice - tp2Price);
+            slPrice = signalDirection === 'LONG'
+                ? entryPrice - tpDistance
+                : entryPrice + tpDistance;
+        }
 
         // Calculate R:R using TP1
         let risk, reward;

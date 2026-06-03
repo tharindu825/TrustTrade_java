@@ -20,9 +20,13 @@ class TradingStrategy {
         this.tp1Roi = parseFloat(config.TP1_ROI || 0.4);  // e.g. 0.4 = 40% ROI at leverage
         this.tp2Roi = parseFloat(config.TP2_ROI || 1.0);  // e.g. 1.0 = 100% ROI at leverage
 
-        // Leverage from env (signal leverage is always ignored)
+        // Leverage
         this.defaultLeverage = parseInt(config.DEFAULT_LEVERAGE || 10);
         this.maxLeverageCap  = parseInt(config.MAX_LEVERAGE || 15);
+
+        // Signal SL/Leverage preference
+        this.useSignalSL = config.USE_SIGNAL_SL !== 'false';  // default: true — use signal's SL
+        this.useSignalLeverage = config.USE_SIGNAL_LEVERAGE === 'true';  // default: false — use env leverage
 
         // Margin type configuration
         this.marginType = (config.MARGIN_TYPE || 'CROSSED').toUpperCase();
@@ -202,9 +206,16 @@ class TradingStrategy {
                 entryPrice = entryPrices[0];
             }
 
-            // Always use env-configured leverage — signal leverage is ignored
-            const finalLeverage = Math.min(this.defaultLeverage, this.maxLeverageCap);
-            logger.info(`Using env leverage: ${finalLeverage}x (DEFAULT_LEVERAGE=${this.defaultLeverage}, MAX_LEVERAGE=${this.maxLeverageCap})`);
+            // Determine leverage: use signal's leverage if USE_SIGNAL_LEVERAGE=true, else env
+            let finalLeverage;
+            if (this.useSignalLeverage && signal.leverage) {
+                const signalLev = parseInt(signal.leverage);
+                finalLeverage = Math.min(signalLev, this.maxLeverageCap);
+                logger.info(`Using SIGNAL leverage: ${finalLeverage}x (signal=${signalLev}x, cap=${this.maxLeverageCap}x)`);
+            } else {
+                finalLeverage = Math.min(this.defaultLeverage, this.maxLeverageCap);
+                logger.info(`Using ENV leverage: ${finalLeverage}x (DEFAULT_LEVERAGE=${this.defaultLeverage}, MAX_LEVERAGE=${this.maxLeverageCap})`);
+            }
 
             // Set leverage and margin type
             await this.trader.setLeverage(coin, finalLeverage);
@@ -218,14 +229,20 @@ class TradingStrategy {
             }
 
             // Calculate TP and SL prices
-            // signal.stopLoss → explicit SL from SCALP signal (used directly if present)
-            // signal.targets  → TP levels from signal (used if available, else env ROI fallback)
+            // When USE_SIGNAL_SL=true (default), signal.stopLoss is used directly
+            // When USE_SIGNAL_SL=false, SL is derived from TP distance or SL_PERCENTAGE
+            const explicitSL = this.useSignalSL ? signal.stopLoss : null;
+            if (this.useSignalSL && signal.stopLoss) {
+                logger.info(`📍 Using SIGNAL StopLoss: ${signal.stopLoss} (USE_SIGNAL_SL=true)`);
+            } else if (signal.stopLoss) {
+                logger.info(`📍 Ignoring signal StopLoss ${signal.stopLoss}, using predefined SL (USE_SIGNAL_SL=false)`);
+            }
             const { tp1Price, tp2Price, slPrice } = this.calculateTPSL(
                 entryPrice,
                 direction,
                 finalLeverage,
                 signal.targets,
-                signal.stopLoss   // explicit SL from SCALP format, null for old formats
+                explicitSL
             );
 
             // R:R is now validated in the direction validator's slot system
