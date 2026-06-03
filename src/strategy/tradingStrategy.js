@@ -237,7 +237,7 @@ class TradingStrategy {
             } else if (signal.stopLoss) {
                 logger.info(`📍 Ignoring signal StopLoss ${signal.stopLoss}, using predefined SL (USE_SIGNAL_SL=false)`);
             }
-            const { tp1Price, tp2Price, slPrice } = this.calculateTPSL(
+            const { tpPrices, tp1Price, tp2Price, slPrice } = this.calculateTPSL(
                 entryPrice,
                 direction,
                 finalLeverage,
@@ -262,7 +262,7 @@ class TradingStrategy {
             );
 
             logger.info(`✅ Limit entry order placed for ${coin}`);
-            logger.info(`Entry: ${entryPrice}, TP1: ${tp1Price}, TP2: ${tp2Price}, SL: ${slPrice}`);
+            logger.info(`Entry: ${entryPrice}, TPs: [${tpPrices.join(', ')}], SL: ${slPrice}`);
 
             // Store signal for monitoring
             this.activeSignals.set(coin, {
@@ -270,6 +270,7 @@ class TradingStrategy {
                 entryOrderId: entryOrder.orderId,
                 quantity,
                 entryPrice,
+                tpPrices,
                 tp1Price,
                 tp2Price,
                 slPrice,
@@ -309,7 +310,8 @@ class TradingStrategy {
      *   2. ROI-based calculation using TP1_ROI / TP2_ROI from env
      */
     calculateTPSL(entryPrice, direction, leverage, signalTargets = [], explicitSL = null) {
-        let tp1Price, tp2Price, slPrice;
+        let tpPrices = [];
+        let slPrice;
 
         // ── Determine Stop Loss ──────────────────────────────────────────────────
         if (explicitSL !== null && !isNaN(explicitSL) && explicitSL > 0) {
@@ -319,40 +321,42 @@ class TradingStrategy {
         }
 
         // ── Determine Take Profits ───────────────────────────────────────────────
-        if (signalTargets && signalTargets.length >= 2) {
-            tp1Price = signalTargets[0];
-            tp2Price = signalTargets[signalTargets.length - 1]; // last TP as TP2
+        if (signalTargets && signalTargets.length >= 1) {
+            tpPrices = [...signalTargets];
 
-            if (slPrice === undefined) {
-                // Priority 2: derive SL from TP2 distance
-                const tpDistance = Math.abs(entryPrice - tp2Price);
-                slPrice = direction === 'LONG'
-                    ? entryPrice - tpDistance
-                    : entryPrice + tpDistance;
-                logger.info(`Derived SL from TP2 distance: ${slPrice.toFixed(8)}`);
+            // If we have only 1 target, derive a second target to satisfy any multi-TP assumptions
+            if (tpPrices.length === 1) {
+                const tp1Price = tpPrices[0];
+                const tp1Distance = Math.abs(entryPrice - tp1Price);
+                const tp2Price = direction === 'LONG'
+                    ? entryPrice + tp1Distance * 2
+                    : entryPrice - tp1Distance * 2;
+                tpPrices.push(tp2Price);
+
+                if (slPrice === undefined) {
+                    slPrice = direction === 'LONG'
+                        ? entryPrice - tp1Distance
+                        : entryPrice + tp1Distance;
+                }
+                logger.info(`Single target – TP1=${tp1Price}, derived TP2=${tp2Price.toFixed(8)}, SL=${slPrice}`);
+            } else {
+                // If signal has multiple targets, and SL is not set, derive SL from the last target distance
+                if (slPrice === undefined) {
+                    const tpLastPrice = tpPrices[tpPrices.length - 1];
+                    const tpDistance = Math.abs(entryPrice - tpLastPrice);
+                    slPrice = direction === 'LONG'
+                        ? entryPrice - tpDistance
+                        : entryPrice + tpDistance;
+                    logger.info(`Derived SL from last TP distance: ${slPrice.toFixed(8)}`);
+                }
+                logger.info(`Using signal TPs: count=${tpPrices.length}, targets=[${tpPrices.join(', ')}], SL=${slPrice}`);
             }
-
-            logger.info(`Using signal TPs: TP1=${tp1Price}, TP2=${tp2Price}, SL=${slPrice}`);
-        } else if (signalTargets && signalTargets.length === 1) {
-            // Only one target: use it as TP1, derive TP2
-            tp1Price = signalTargets[0];
-            const tp1Distance = Math.abs(entryPrice - tp1Price);
-            tp2Price = direction === 'LONG'
-                ? entryPrice + tp1Distance * 2
-                : entryPrice - tp1Distance * 2;
-
-            if (slPrice === undefined) {
-                slPrice = direction === 'LONG'
-                    ? entryPrice - tp1Distance
-                    : entryPrice + tp1Distance;
-            }
-
-            logger.info(`Single target – TP1=${tp1Price}, derived TP2=${tp2Price.toFixed(8)}, SL=${slPrice}`);
         } else {
             // Priority 3: ROI-based calculation using env TP1_ROI / TP2_ROI
             const tp1PriceChange = (entryPrice * this.tp1Roi) / leverage;
             const tp2PriceChange = (entryPrice * this.tp2Roi) / leverage;
 
+            let tp1Price, tp2Price;
             if (direction === 'LONG') {
                 tp1Price = entryPrice + tp1PriceChange;
                 tp2Price = entryPrice + tp2PriceChange;
@@ -360,6 +364,7 @@ class TradingStrategy {
                 tp1Price = entryPrice - tp1PriceChange;
                 tp2Price = entryPrice - tp2PriceChange;
             }
+            tpPrices = [tp1Price, tp2Price];
 
             logger.info(`ROI-based TPs: TP1=${tp1Price.toFixed(8)} (ROI ${this.tp1Roi}%), TP2=${tp2Price.toFixed(8)} (ROI ${this.tp2Roi}%) at ${leverage}x`);
 
@@ -373,7 +378,11 @@ class TradingStrategy {
             }
         }
 
+        const tp1Price = tpPrices[0];
+        const tp2Price = tpPrices[tpPrices.length - 1];
+
         return {
+            tpPrices: tpPrices.map(tp => parseFloat(tp.toFixed(8))),
             tp1Price: parseFloat(tp1Price.toFixed(8)),
             tp2Price: parseFloat(tp2Price.toFixed(8)),
             slPrice:  parseFloat(slPrice.toFixed(8))
@@ -395,6 +404,26 @@ class TradingStrategy {
         }
 
         return reward / risk;
+    }
+
+    /**
+     * Get symbol filters from cached exchangeInfo
+     */
+    getSymbolFilters(symbol) {
+        if (!this.trader || !this.trader.exchangeInfo || !this.trader.exchangeInfo.symbols) {
+            return { minQty: 0, minNotional: 5.0 };
+        }
+        const symInfo = this.trader.exchangeInfo.symbols.find(s => s.symbol === symbol);
+        if (!symInfo) {
+            return { minQty: 0, minNotional: 5.0 };
+        }
+        const lotSize = symInfo.filters.find(f => f.filterType === 'LOT_SIZE');
+        const minNotional = symInfo.filters.find(f => f.filterType === 'MIN_NOTIONAL') || symInfo.filters.find(f => f.filterType === 'NOTIONAL');
+
+        return {
+            minQty: lotSize ? parseFloat(lotSize.minQty || 0) : 0,
+            minNotional: minNotional ? parseFloat(minNotional.notional || minNotional.minNotional || 5.0) : 5.0
+        };
     }
 
     /**
@@ -481,59 +510,161 @@ class TradingStrategy {
      * Place protective TP/SL orders after entry is filled
      */
     async placeProtectiveOrders(symbol, signalData) {
-        const { quantity, tp1Price, tp2Price, slPrice, exitSide } = signalData;
+        const { quantity, slPrice, exitSide } = signalData;
+        const tpPrices = signalData.tpPrices || [];
 
-        // Track results for each order
+        // Track results
         const results = {
-            tp1: { success: false, orderId: null, error: null },
-            tp2: { success: false, orderId: null, error: null },
+            tpPlaced: 0,
+            tpFailed: 0,
             sl: { success: false, orderId: null, error: null }
         };
 
         try {
             // Format total quantity
             const totalQty = this.trader.formatQuantity(symbol, quantity);
-            const tp1Raw = totalQty * 0.5;
-            const tp1Quantity = this.trader.formatQuantity(symbol, tp1Raw);
-            const tp2Raw = parseFloat((totalQty - tp1Quantity).toFixed(8));
-            const tp2Quantity = this.trader.formatQuantity(symbol, tp2Raw);
 
-            logger.info(`Placing protective orders for ${symbol}: Total=${totalQty}, TP1=${tp1Quantity}, TP2=${tp2Quantity}`);
+            // Get symbol filters
+            const filters = this.getSymbolFilters(symbol);
+            const minNotional = filters.minNotional;
+            const minQty = filters.minQty;
+            logger.info(`Placing protective orders for ${symbol}: Total=${totalQty}, SL=${slPrice}`);
+            logger.info(`Symbol ${symbol} filters: minQty=${minQty}, minNotional=${minNotional}`);
 
-            // Place TP1 (individual error handling)
-            try {
-                const tp1Order = await this.trader.placeTakeProfit(symbol, exitSide, tp1Quantity, tp1Price);
-                results.tp1 = { success: true, orderId: tp1Order.orderId, error: null };
-                signalData.tp1OrderId = tp1Order.orderId;
-                signalData.tp1Quantity = tp1Quantity;  // Store for monitoring
-                logger.info(`✅ TP1 placed: ${tp1Order.orderId}`);
-            } catch (error) {
-                results.tp1.error = error.message;
-                logger.error(`❌ Failed to place TP1 for ${symbol}: ${error.message}`);
+            const numTargets = tpPrices.length;
+            if (numTargets === 0) {
+                logger.error(`No TP targets found for ${symbol}!`);
+                return;
             }
 
-            // Place TP2 (continue even if TP1 failed)
-            if (tp2Quantity > 0) {
-                try {
-                    const tp2Order = await this.trader.placeTakeProfit(symbol, exitSide, tp2Quantity, tp2Price);
-                    results.tp2 = { success: true, orderId: tp2Order.orderId, error: null };
-                    signalData.tp2OrderId = tp2Order.orderId;
-                    signalData.tp2Quantity = tp2Quantity;  // Store for monitoring
-                    logger.info(`✅ TP2 placed: ${tp2Order.orderId}`);
-                } catch (error) {
-                    results.tp2.error = error.message;
-                    logger.error(`❌ Failed to place TP2 for ${symbol}: ${error.message}`);
+            const rawQtyPerTarget = totalQty / numTargets;
+            let qtyPerTarget = this.trader.formatQuantity(symbol, rawQtyPerTarget);
+            if (qtyPerTarget < minQty) {
+                qtyPerTarget = minQty;
+            }
+
+            // Build proposed TPs
+            const proposedTPs = [];
+            let remainingQty = totalQty;
+
+            for (let i = 0; i < numTargets; i++) {
+                const price = tpPrices[i];
+                let targetQty = (i === numTargets - 1) ? remainingQty : qtyPerTarget;
+                targetQty = this.trader.formatQuantity(symbol, targetQty);
+
+                if (targetQty <= 0) {
+                    continue;
                 }
-            } else {
-                logger.info(`Skipping TP2 (quantity 0)`);
-                results.tp2 = { success: true, orderId: 'SKIPPED', error: null };
-                signalData.tp2OrderId = 'SKIPPED';
-                signalData.tp2Quantity = 0;
+
+                proposedTPs.push({
+                    price,
+                    quantity: targetQty
+                });
+
+                remainingQty -= targetQty;
+                remainingQty = parseFloat(remainingQty.toFixed(8));
+            }
+
+            // Validate and merge undersized TPs
+            const validTPs = [];
+            for (let i = 0; i < proposedTPs.length; i++) {
+                const tp = proposedTPs[i];
+                const notional = tp.quantity * tp.price;
+
+                if (tp.quantity < minQty || notional < minNotional) {
+                    logger.info(`TP target ${tp.price} is undersized (Qty: ${tp.quantity}, Notional: ${notional.toFixed(2)} USDT). Merging...`);
+                    
+                    if (validTPs.length > 0) {
+                        validTPs[validTPs.length - 1].quantity = this.trader.formatQuantity(
+                            symbol,
+                            validTPs[validTPs.length - 1].quantity + tp.quantity
+                        );
+                        logger.info(`Merged into previous TP at ${validTPs[validTPs.length - 1].price}, new quantity: ${validTPs[validTPs.length - 1].quantity}`);
+                    } else {
+                        if (i + 1 < proposedTPs.length) {
+                            proposedTPs[i + 1].quantity = this.trader.formatQuantity(
+                                symbol,
+                                proposedTPs[i + 1].quantity + tp.quantity
+                            );
+                            logger.info(`Merged into next TP at ${proposedTPs[i + 1].price}, new quantity: ${proposedTPs[i + 1].quantity}`);
+                        } else {
+                            validTPs.push(tp);
+                        }
+                    }
+                } else {
+                    validTPs.push(tp);
+                }
+            }
+
+            // Combine TPs with same price
+            const uniqueTPs = [];
+            for (const tp of validTPs) {
+                const existing = uniqueTPs.find(u => Math.abs(u.price - tp.price) < 0.00000001);
+                if (existing) {
+                    existing.quantity = this.trader.formatQuantity(symbol, existing.quantity + tp.quantity);
+                } else {
+                    uniqueTPs.push(tp);
+                }
+            }
+
+            // Format total allocated and adjust diff
+            let totalAllocated = uniqueTPs.reduce((sum, tp) => sum + tp.quantity, 0);
+            totalAllocated = this.trader.formatQuantity(symbol, totalAllocated);
+
+            const diff = parseFloat((totalQty - totalAllocated).toFixed(8));
+            if (diff !== 0 && uniqueTPs.length > 0) {
+                logger.info(`Adjusting last TP quantity by ${diff} to match total position size`);
+                uniqueTPs[uniqueTPs.length - 1].quantity = this.trader.formatQuantity(
+                    symbol,
+                    uniqueTPs[uniqueTPs.length - 1].quantity + diff
+                );
+            }
+
+            // Clear old values and prepare new array
+            signalData.tpOrders = [];
+
+            // Place all valid TPs
+            for (let i = 0; i < uniqueTPs.length; i++) {
+                const tp = uniqueTPs[i];
+                try {
+                    logger.info(`Placing TP${i+1}/${uniqueTPs.length}: Price=${tp.price}, Qty=${tp.quantity}`);
+                    const tpOrder = await this.trader.placeTakeProfit(symbol, exitSide, tp.quantity, tp.price);
+                    
+                    signalData.tpOrders.push({
+                        price: tp.price,
+                        quantity: tp.quantity,
+                        orderId: tpOrder.orderId,
+                        filled: false
+                    });
+                    results.tpPlaced++;
+                    logger.info(`✅ TP${i+1} placed: ${tpOrder.orderId}`);
+                } catch (error) {
+                    results.tpFailed++;
+                    logger.error(`❌ Failed to place TP${i+1} at ${tp.price}: ${error.message}`);
+                }
+            }
+
+            // Map legacy TP variables for backward compatibility and position tracking
+            if (signalData.tpOrders.length > 0) {
+                signalData.tp1OrderId = signalData.tpOrders[0].orderId;
+                signalData.tp1Quantity = signalData.tpOrders[0].quantity;
+                signalData.tp1Price = signalData.tpOrders[0].price;
+
+                if (signalData.tpOrders.length > 1) {
+                    const lastTp = signalData.tpOrders[signalData.tpOrders.length - 1];
+                    signalData.tp2OrderId = lastTp.orderId;
+                    signalData.tp2Quantity = lastTp.quantity;
+                    signalData.tp2Price = lastTp.price;
+                } else {
+                    signalData.tp2OrderId = 'SKIPPED';
+                    signalData.tp2Quantity = 0;
+                    signalData.tp2Price = signalData.tp1Price;
+                }
             }
 
             // Place SL (CRITICAL)
             try {
-                const slOrder = await this.trader.placeStopLoss(symbol, exitSide, quantity, slPrice);
+                const slOrder = await this.trader.placeStopLoss(symbol, exitSide, totalQty, slPrice);
                 results.sl = { success: true, orderId: slOrder.orderId, error: null };
                 signalData.slOrderId = slOrder.orderId;
                 logger.info(`✅ SL placed: ${slOrder.orderId}`);
@@ -545,42 +676,46 @@ class TradingStrategy {
             // Immediate SL retry if failed
             if (!results.sl.success) {
                 logger.warn(`🔄 Attempting immediate SL retry for ${symbol}...`);
-                await this.retrySLPlacement(symbol, signalData, results, quantity, exitSide, slPrice);
+                await this.retrySLPlacement(symbol, signalData, results, totalQty, exitSide, slPrice);
             }
 
             // Mark as protected if SL succeeded
             if (results.sl.success && this.positionTracker) {
+                // Update tracked position data to include placed order IDs and array
+                const tracked = this.positionTracker.trackedPositions.get(symbol);
+                if (tracked) {
+                    tracked.tpOrders = signalData.tpOrders;
+                    tracked.slOrderId = signalData.slOrderId;
+                    tracked.tp1OrderId = signalData.tp1OrderId;
+                    tracked.tp2OrderId = signalData.tp2OrderId;
+                    tracked.tp1Quantity = signalData.tp1Quantity;
+                    tracked.tp2Quantity = signalData.tp2Quantity;
+                }
                 this.positionTracker.markProtected(symbol);
-                if (!results.tp1.success || !results.tp2.success) {
-                    const failed = [];
-                    if (!results.tp1.success) failed.push('TP1');
-                    if (!results.tp2.success) failed.push('TP2');
-                    logger.warn(`⚠️ Position ${symbol} partially protected. Missing: ${failed.join(', ')}`);
+                if (results.tpFailed > 0 || uniqueTPs.length === 0) {
+                    logger.warn(`⚠️ Position ${symbol} partially protected. ${results.tpFailed} TPs failed to place.`);
                 }
             }
 
             // Send alerts
-            if (results.tp1.success && results.tp2.success && results.sl.success) {
+            if (results.sl.success && results.tpFailed === 0) {
                 if (this.alerts) {
+                    const tpDetails = signalData.tpOrders.map((tp, idx) => `TP${idx+1}: ${tp.price} (${tp.quantity})`).join('\n');
                     await this.alerts.sendAlert(
                         `🛡️ *Protective Orders Placed*\n\n` +
                         `Symbol: ${symbol}\n` +
-                        `TP1: ${tp1Price}\n` +
-                        `TP2: ${tp2Price}\n` +
+                        `${tpDetails}\n` +
                         `SL: ${slPrice}`,
                         'INFO'
                     );
                 }
             } else {
-                const failed = [];
-                if (!results.tp1.success) failed.push('TP1');
-                if (!results.tp2.success) failed.push('TP2');
-                if (!results.sl.success) failed.push('SL');
                 if (this.alerts) {
                     await this.alerts.sendAlert(
                         `⚠️ *Partial Protection*\n\n` +
                         `Symbol: ${symbol}\n` +
-                        `Failed: ${failed.join(', ')}`,
+                        `Failed Take Profit orders: ${results.tpFailed}\n` +
+                        `Stop Loss Status: ${results.sl.success ? 'PLACED' : 'FAILED'}`,
                         'WARNING'
                     );
                 }
@@ -630,6 +765,7 @@ class TradingStrategy {
     monitorActiveTrade(symbol, signalData) {
         const checkInterval = 10000;
         signalData.tp1Filled = false;
+        signalData.tp2Filled = false; // complete indicator
 
         const intervalId = setInterval(async () => {
             try {
@@ -641,8 +777,9 @@ class TradingStrategy {
                 if (!hasPosition) {
                     logger.info(`Position ${symbol} no longer exists. Stopping monitor.`);
 
-                    // Check if this was an SL hit (position closed but not TP filled)
-                    const isSLHit = !signalData.tp2Filled;
+                    // Check if this was an SL hit (position closed but not all TPs filled)
+                    const allTPsFilled = (signalData.tpOrders || []).every(t => t.filled);
+                    const isSLHit = !allTPsFilled;
 
                     // Determine actual close price
                     // When SL hits, position is already gone so currentPosition is null
@@ -709,68 +846,83 @@ class TradingStrategy {
                     return;
                 }
 
-                // Check TP1 Status
-                if (!signalData.tp1Filled && signalData.tp1OrderId) {
-                    const tp1Status = await this.trader.tradingClient.futuresGetOrder({
-                        symbol,
-                        orderId: signalData.tp1OrderId
-                    });
-                    if (tp1Status.status === 'FILLED') {
-                        logger.info(`✅ TP1 Hit for ${symbol}`);
-                        signalData.tp1Filled = true;
+                // Check all TP orders status
+                const tpOrders = signalData.tpOrders || [];
+                const totalQty = this.trader.formatQuantity(symbol, signalData.quantity);
+                let allFilled = true;
+                let firstJustFilled = false;
 
-                        if (this.alerts) {
-                            const profit = (parseFloat(tp1Status.avgPrice) - signalData.entryPrice) * signalData.tp1Quantity * (signalData.direction === 'SHORT' ? -1 : 1);
-                            const profitPercent = ((parseFloat(tp1Status.avgPrice) - signalData.entryPrice) / signalData.entryPrice) * 100 * (signalData.direction === 'SHORT' ? -1 : 1);
+                for (let i = 0; i < tpOrders.length; i++) {
+                    const tp = tpOrders[i];
 
-                            await this.alerts.sendTPHitAlert(
+                    if (tp.filled) {
+                        continue;
+                    }
+
+                    allFilled = false;
+
+                    if (tp.orderId) {
+                        try {
+                            const orderStatus = await this.trader.tradingClient.futuresGetOrder({
                                 symbol,
-                                'TP1',
-                                signalData.entryPrice,
-                                parseFloat(tp1Status.avgPrice),
-                                profit,
-                                profitPercent,
-                                50 // 50% position remaining
-                            );
-                        }
+                                orderId: tp.orderId
+                            });
 
-                        // Move SL to Breakeven
-                        if (signalData.slOrderId) {
-                            await this.moveStopLossToBreakeven(symbol, signalData);
+                            if (orderStatus.status === 'FILLED') {
+                                logger.info(`✅ TP${i+1} Hit at ${tp.price} for ${symbol}`);
+                                tp.filled = true;
+
+                                // Calculate profit metrics
+                                const avgPrice = parseFloat(orderStatus.avgPrice);
+                                const directionMultiplier = signalData.direction === 'SHORT' ? -1 : 1;
+                                const profit = (avgPrice - signalData.entryPrice) * tp.quantity * directionMultiplier;
+                                const profitPercent = ((avgPrice - signalData.entryPrice) / signalData.entryPrice) * 100 * directionMultiplier;
+
+                                // Calculate remaining percentage
+                                const filledQty = tpOrders.filter(t => t.filled).reduce((sum, t) => sum + t.quantity, 0);
+                                const remainingQty = Math.max(0, totalQty - filledQty);
+                                const remainingPercent = Math.round((remainingQty / totalQty) * 100);
+
+                                if (this.alerts) {
+                                    await this.alerts.sendTPHitAlert(
+                                        symbol,
+                                        `TP${i+1}`,
+                                        signalData.entryPrice,
+                                        avgPrice,
+                                        profit,
+                                        profitPercent,
+                                        remainingPercent > 0 ? remainingPercent : null
+                                    );
+                                }
+
+                                // Check if this is the first TP to fill
+                                if (!signalData.tp1Filled) {
+                                    firstJustFilled = true;
+                                }
+                            }
+                        } catch (err) {
+                            if (err.code !== -2013) {
+                                logger.error(`Error checking TP${i+1} status for ${symbol}: ${err.message}`);
+                            }
                         }
                     }
                 }
 
-                // Check TP2 Status
-                if (signalData.tp2OrderId && signalData.tp2OrderId !== 'SKIPPED') {
-                    const tp2Status = await this.trader.tradingClient.futuresGetOrder({
-                        symbol,
-                        orderId: signalData.tp2OrderId
-                    });
-                    if (tp2Status.status === 'FILLED') {
-                        logger.info(`✅ TP2 Hit for ${symbol} - Trade Complete!`);
-                        signalData.tp2Filled = true;
-
-                        if (this.alerts) {
-                            const totalProfit = (parseFloat(tp2Status.avgPrice) - signalData.entryPrice) * signalData.totalQuantity * (signalData.direction === 'SHORT' ? -1 : 1);
-                            const profitPercent = ((parseFloat(tp2Status.avgPrice) - signalData.entryPrice) / signalData.entryPrice) * 100 * (signalData.direction === 'SHORT' ? -1 : 1);
-
-                            await this.alerts.sendTPHitAlert(
-                                symbol,
-                                'TP2',
-                                signalData.entryPrice,
-                                parseFloat(tp2Status.avgPrice),
-                                totalProfit,
-                                profitPercent,
-                                null // Trade complete
-                            );
-                        }
-
-                        // Trade likely done, but wait for position check loop to cleanup
-                        clearInterval(intervalId);
-                        this.activeSignals.delete(symbol);
-                        return;
+                if (firstJustFilled) {
+                    signalData.tp1Filled = true;
+                    // Move SL to Breakeven
+                    if (signalData.slOrderId) {
+                        await this.moveStopLossToBreakeven(symbol, signalData);
                     }
+                }
+
+                if (allFilled && tpOrders.length > 0) {
+                    logger.info(`✅ All TPs Hit for ${symbol} - Trade Complete!`);
+                    signalData.tp2Filled = true;
+
+                    clearInterval(intervalId);
+                    this.activeSignals.delete(symbol);
+                    return;
                 }
 
                 // Check SL Status (if position still exists but we are here, SL might not be filled completely? Or SL filled means position gone)
