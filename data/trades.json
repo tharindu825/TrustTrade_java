@@ -167,6 +167,78 @@
         }
       ],
       "roiPercent": 26.465798045602607
+    },
+    {
+      "id": "trade_1780414737481_e75dntqih",
+      "symbol": "JTOUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.595,
+      "entryTime": "2026-06-02T15:38:57.481Z",
+      "quantity": 13,
+      "leverage": 15,
+      "tp1Price": 0.585,
+      "tp2Price": 0.5462,
+      "slPrice": 0.6165,
+      "closePrice": 0.6176,
+      "closeTime": "2026-06-02T16:17:40.379Z",
+      "pnl": -0.2938,
+      "pnlPercent": -3.798319327731093,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-02T16:17:40.870Z"
+        }
+      ],
+      "roiPercent": -56.9747899159664
+    },
+    {
+      "id": "trade_1780414768363_bfqf49dwa",
+      "symbol": "OPUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.1162,
+      "entryTime": "2026-06-02T15:39:28.363Z",
+      "quantity": 64.5,
+      "leverage": 15,
+      "tp1Price": 0.1145,
+      "tp2Price": 0.1067,
+      "slPrice": 0.1205,
+      "closePrice": 0.1206,
+      "closeTime": "2026-06-02T16:18:41.253Z",
+      "pnl": -0.2838,
+      "pnlPercent": -3.7865748709122204,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-02T16:18:41.758Z"
+        }
+      ],
+      "roiPercent": -56.79862306368331
+    },
+    {
+      "id": "trade_1780414997956_89lolpoid",
+      "symbol": "TONUSDT",
+      "direction": "SHORT",
+      "entryPrice": 1.926,
+      "entryTime": "2026-06-02T15:43:17.956Z",
+      "quantity": 3.9,
+      "leverage": 15,
+      "tp1Price": 1.898,
+      "tp2Price": 1.765,
+      "slPrice": 1.982,
+      "closePrice": 1.98190986,
+      "closeTime": "2026-06-02T17:24:00.378Z",
+      "pnl": -0.21917999999999999,
+      "pnlPercent": -2.9179646936656285,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-02T17:24:00.873Z"
+        }
+      ],
+      "roiPercent": -43.769470404984425
     }
   ]
 }
