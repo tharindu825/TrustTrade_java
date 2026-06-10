@@ -67,6 +67,7 @@ class WebDashboard {
         this.config = config;
         this.positionTracker = positionTracker;
         this.tradeLogger = tradeLogger;
+        this.tradingStrategy = null;
         this.port = parseInt(config.WEB_PORT || 5000);
         this.app = express();
         this.server = null;
@@ -80,6 +81,13 @@ class WebDashboard {
         // Intercept console        // Setup log capture
         this.setupConsoleInterception();
         this.setupLoggerInterception(); // Add Winston interception
+    }
+
+    /**
+     * Set trading strategy reference for hot-reload support
+     */
+    setTradingStrategy(tradingStrategy) {
+        this.tradingStrategy = tradingStrategy;
     }
 
     /**
@@ -195,10 +203,21 @@ class WebDashboard {
                 const envContent = this.generateEnvFile(newConfig);
                 fs.writeFileSync(this.envPath, envContent, 'utf8');
 
+                // Hot-reload: update process.env with new values
+                for (const [key, value] of Object.entries(newConfig)) {
+                    process.env[key] = value;
+                }
+
+                // Hot-reload: refresh trading strategy & direction validator
+                if (this.tradingStrategy) {
+                    this.tradingStrategy.reloadConfig(process.env);
+                    logger.info('🔄 Config hot-reloaded into running bot (no restart needed)');
+                }
+
                 logger.info('Configuration updated successfully');
                 res.json({
                     success: true,
-                    message: 'Configuration saved. Please restart the bot for changes to take effect.'
+                    message: 'Configuration saved and applied! Settings are now active (no restart needed).'
                 });
             } catch (error) {
                 logger.error(`Error updating config: ${error.message} `);

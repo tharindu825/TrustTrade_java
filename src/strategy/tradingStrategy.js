@@ -73,6 +73,45 @@ class TradingStrategy {
     }
 
     /**
+     * Hot-reload configuration (called when settings are saved via GUI)
+     */
+    reloadConfig(config) {
+        this.config = config;
+
+        // Risk management
+        this.minBalance = parseFloat(config.MIN_BALANCE || 1.0);
+        this.maxOpenPositions = parseInt(config.MAX_OPEN_POSITIONS || 3);
+        this.riskPerTrade = parseFloat(config.RISK_PER_TRADE || 2.0);
+        this.tpPercentage = parseFloat(config.TP_PERCENTAGE || 3.0);
+        this.slPercentage = parseFloat(config.SL_PERCENTAGE || 1.5);
+
+        // TP ROI levels
+        this.tp1Roi = parseFloat(config.TP1_ROI || 0.4);
+        this.tp2Roi = parseFloat(config.TP2_ROI || 1.0);
+
+        // Leverage
+        this.defaultLeverage = parseInt(config.DEFAULT_LEVERAGE || 10);
+        this.maxLeverageCap = parseInt(config.MAX_LEVERAGE || 15);
+
+        // Signal SL/Leverage preference
+        this.useSignalSL = config.USE_SIGNAL_SL !== 'false';
+        this.useSignalLeverage = config.USE_SIGNAL_LEVERAGE === 'true';
+
+        // Margin type
+        this.marginType = (config.MARGIN_TYPE || 'CROSSED').toUpperCase();
+
+        // Direction validation
+        this.enableDirectionValidation = config.ENABLE_DIRECTION_VALIDATION === 'true';
+
+        // Reload direction validator config
+        if (this.directionValidator) {
+            this.directionValidator.reloadConfig(config);
+        }
+
+        logger.info('🔄 Trading Strategy config reloaded from GUI settings');
+    }
+
+    /**
      * Handle incoming signal
      */
     async handleSignal(signal) {

@@ -88,6 +88,7 @@ class TrustTradeBot {
             // Initialize web dashboard
             logger.info('Starting web dashboard...');
             this.webDashboard = new WebDashboard(this.binanceTrader, this.config, this.positionTracker, this.tradeLogger);
+            this.webDashboard.setTradingStrategy(this.tradingStrategy);
             this.webDashboard.start();
 
             // Initialize Telegram bot

@@ -69,6 +69,48 @@ class DirectionValidator {
     }
 
     /**
+     * Hot-reload configuration (called when settings are saved via GUI)
+     */
+    reloadConfig(config) {
+        this.config = config;
+        this.enabled = config.ENABLE_DIRECTION_VALIDATION_FILTER === 'true';
+
+        // Strictness mode
+        const oldMode = this.strictnessMode;
+        this.strictnessMode = (config.STRICTNESS_MODE || 'MODERATE').toUpperCase();
+        this.preset = STRICTNESS_PRESETS[this.strictnessMode] || STRICTNESS_PRESETS.MODERATE;
+
+        // Direction Validation sub-indicators
+        this.rsiPeriod = parseInt(config.DIRECTION_RSI_PERIOD || 14);
+        this.emaPeriod = parseInt(config.DIRECTION_EMA_PERIOD || 20);
+        this.macdFast = parseInt(config.DIRECTION_MACD_FAST || 12);
+        this.macdSlow = parseInt(config.DIRECTION_MACD_SLOW || 26);
+        this.macdSignal = parseInt(config.DIRECTION_MACD_SIGNAL || 9);
+        this.klinesLimit = parseInt(config.DIRECTION_KLINES_LIMIT || 100);
+        this.rsiBullishThreshold = parseFloat(config.DIRECTION_RSI_BULLISH_THRESHOLD || 50);
+        this.rsiBearishThreshold = parseFloat(config.DIRECTION_RSI_BEARISH_THRESHOLD || 50);
+        this.alertOnSkip = config.DIRECTION_ALERT_ON_SKIP === 'true';
+
+        // ADX Filter config
+        this.adxPeriod = parseInt(config.ADX_PERIOD || 14);
+        this.minAdx = parseFloat(config.MIN_ADX || 22);
+
+        // Volume Confirmation config
+        this.volumePeriod = parseInt(config.VOLUME_PERIOD || 20);
+        this.minVolumeMultiplier = parseFloat(config.MIN_VOLUME_MULTIPLIER || 0.8);
+
+        // Risk:Reward config
+        this.minRiskReward = parseFloat(config.MIN_RISK_REWARD || 1.5);
+        this.slPercentage = parseFloat(config.SL_PERCENTAGE || 0.015);
+
+        if (oldMode !== this.strictnessMode) {
+            logger.info(`🔄 Direction Validator RELOADED: Mode changed ${oldMode} → ${this.preset.label}, Slots: [${this.preset.slots.join(', ')}], MinRequired: ${this.preset.minRequired}`);
+        } else {
+            logger.info(`🔄 Direction Validator reloaded: Mode: ${this.preset.label}, Slots: [${this.preset.slots.join(', ')}]`);
+        }
+    }
+
+    /**
      * Validate signal direction using the slot-based strictness system
      * @param {string} symbol - Trading pair symbol
      * @param {string} signalDirection - 'LONG' or 'SHORT'
