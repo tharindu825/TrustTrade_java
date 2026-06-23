@@ -162,10 +162,16 @@ class TradingStrategy {
                 return false;
             }
 
-            // Check if we already have a position
+            // Check if we already have a real position on this coin
             const hasPosition = await this.trader.hasSymbolPosition(signal.coin);
             if (hasPosition) {
                 logger.info(`Already have position for ${signal.coin}. Skipping.`);
+                return false;
+            }
+
+            // Check if there is already a PENDING limit entry for this coin
+            if (this.activeSignals.has(signal.coin)) {
+                logger.info(`Already have a pending limit order for ${signal.coin}. Skipping.`);
                 return false;
             }
 
@@ -196,10 +202,12 @@ class TradingStrategy {
                 return false;
             }
 
-            // Check position limits
+            // Check position limits — count both real positions AND pending limit orders
             const openPositionsCount = await this.trader.getOpenPositionsCount();
-            if (openPositionsCount >= this.maxOpenPositions) {
-                logger.info(`Max open positions reached (${openPositionsCount}/${this.maxOpenPositions}). Skipping.`);
+            const pendingOrdersCount = this.activeSignals.size;
+            const totalUsedSlots = openPositionsCount + pendingOrdersCount;
+            if (totalUsedSlots >= this.maxOpenPositions) {
+                logger.info(`Max open positions reached (real=${openPositionsCount}, pending=${pendingOrdersCount}, max=${this.maxOpenPositions}). Skipping.`);
                 return false;
             }
 

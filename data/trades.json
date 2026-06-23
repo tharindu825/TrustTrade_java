@@ -239,6 +239,150 @@
         }
       ],
       "roiPercent": -43.769470404984425
+    },
+    {
+      "id": "trade_1781106856620_b8v3zjb8x",
+      "symbol": "FETUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.1965,
+      "entryTime": "2026-06-10T15:54:16.620Z",
+      "quantity": 51,
+      "leverage": 20,
+      "tp1Price": 0.1928,
+      "tp2Price": 0.1788,
+      "slPrice": 0.203,
+      "closePrice": 0.1888,
+      "closeTime": "2026-06-10T19:17:59.170Z",
+      "pnl": 0.3927,
+      "pnlPercent": 3.9185750636132317,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-10T19:17:59.687Z"
+        }
+      ],
+      "roiPercent": 78.37150127226464
+    },
+    {
+      "id": "trade_1781253066022_p6qpkewg9",
+      "symbol": "XLMUSDT",
+      "direction": "SHORT",
+      "entryPrice": 0.1924,
+      "entryTime": "2026-06-12T08:31:06.022Z",
+      "quantity": 39,
+      "leverage": 15,
+      "tp1Price": 0.189,
+      "tp2Price": 0.1784,
+      "slPrice": 0.2001,
+      "closePrice": 0.18126,
+      "closeTime": "2026-06-14T15:20:34.395Z",
+      "pnl": 0.34972000000000003,
+      "pnlPercent": 4.660696199157739,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-14T15:20:34.992Z"
+        }
+      ],
+      "roiPercent": 69.91044298736607
+    },
+    {
+      "id": "trade_1781543880062_kyjv713ns",
+      "symbol": "UNIUSDT",
+      "direction": "SHORT",
+      "entryPrice": 2.714,
+      "entryTime": "2026-06-15T17:18:00.062Z",
+      "quantity": 4,
+      "leverage": 20,
+      "tp1Price": 2.672,
+      "tp2Price": 2.477,
+      "slPrice": 2.816,
+      "closePrice": 2.817,
+      "closeTime": "2026-06-15T23:45:43.030Z",
+      "pnl": -0.368,
+      "pnlPercent": -3.389830508474576,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-15T23:45:43.536Z"
+        }
+      ],
+      "roiPercent": -67.79661016949153
+    },
+    {
+      "id": "trade_1781940706864_pqurjk8sj",
+      "symbol": "ICPUSDT",
+      "direction": "LONG",
+      "entryPrice": 2.277,
+      "entryTime": "2026-06-20T07:31:46.864Z",
+      "quantity": 4,
+      "leverage": 20,
+      "tp1Price": 2.314,
+      "tp2Price": 2.468,
+      "slPrice": 2.204,
+      "closePrice": 2.27511693,
+      "closeTime": "2026-06-21T04:00:09.569Z",
+      "pnl": 0,
+      "pnlPercent": 0,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-21T04:00:09.706Z"
+        }
+      ],
+      "roiPercent": 0
+    },
+    {
+      "id": "trade_1781940915438_8nv6sdnwi",
+      "symbol": "POLUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.0828,
+      "entryTime": "2026-06-20T07:35:15.438Z",
+      "quantity": 121,
+      "leverage": 20,
+      "tp1Price": 0.0844,
+      "tp2Price": 0.0902,
+      "slPrice": 0.08,
+      "closePrice": 0.07993,
+      "closeTime": "2026-06-20T18:34:09.234Z",
+      "pnl": -0.34727,
+      "pnlPercent": -3.4661835748792273,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-20T18:34:09.593Z"
+        }
+      ],
+      "roiPercent": -69.32367149758454
+    },
+    {
+      "id": "trade_1781942547011_6i10gfts4",
+      "symbol": "CRVUSDT",
+      "direction": "LONG",
+      "entryPrice": 0.2124,
+      "entryTime": "2026-06-20T08:02:27.011Z",
+      "quantity": 47.1,
+      "leverage": 20,
+      "tp1Price": 0.2161,
+      "tp2Price": 0.2309,
+      "slPrice": 0.2058,
+      "closePrice": 0.2058,
+      "closeTime": "2026-06-21T16:27:35.096Z",
+      "pnl": -0.31085999999999975,
+      "pnlPercent": -3.107344632768359,
+      "status": "CLOSED",
+      "remarks": [
+        {
+          "text": "SL Hit or Manual Close",
+          "timestamp": "2026-06-21T16:27:35.597Z"
+        }
+      ],
+      "roiPercent": -62.14689265536718
     }
   ]
 }
